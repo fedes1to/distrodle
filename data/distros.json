@@ -834,5 +834,24 @@
     "category": "Mobile",
     "status": "Active",
     "popularity": "Very High"
+  },
+  {
+    "id": "steamos",
+    "name": "SteamOS",
+    "logo": "🎮",
+    "paid": false,
+    "initSystem": "systemd",
+    "releaseType": "Rolling",
+    "parentDistro": "Arch Linux",
+    "packageManager": "Pacman",
+    "difficulty": "Intermediate",
+    "yearReleased": 2013,
+    "desktopEnvironment": "KDE",
+    "architecture": "x86_64, ARM",
+    "basedOn": "Arch Linux",
+    "origin": "USA",
+    "category": "Gaming, Desktop",
+    "status": "Active",
+    "popularity": "Medium"
   }
 ]
