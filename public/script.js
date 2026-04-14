@@ -91,14 +91,22 @@ async function initGame() {
     }
 }
 
-// Update datalist to exclude already-guessed distros
-function updateDistroList() {
+// Update datalist with filtered matches and exclude already-guessed distros
+function updateDistroList(filterText = '') {
     distroListElement.innerHTML = '';
+
+    const query = filterText.trim().toLowerCase();
+    if (!query) {
+        return;
+    }
+
     const availableDistros = distroList.filter(d => !guessedDistros.includes(d));
     availableDistros.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        distroListElement.appendChild(option);
+        if (name.toLowerCase().includes(query)) {
+            const option = document.createElement('option');
+            option.value = name;
+            distroListElement.appendChild(option);
+        }
     });
 }
 
@@ -480,23 +488,12 @@ document.head.appendChild(shakeStyle);
 guessBtn.addEventListener('click', handleGuess);
 
 guessInput.addEventListener('input', () => {
-    const inputVal = guessInput.value.toLowerCase();
-    const availableDistros = distroList.filter(d => !guessedDistros.includes(d));
-    
-    distroListElement.innerHTML = '';
-    if (inputVal.length > 0) {
-        availableDistros.forEach(name => {
-            if (name.toLowerCase().includes(inputVal)) {
-                const option = document.createElement('option');
-                option.value = name;
-                distroListElement.appendChild(option);
-            }
-        });
-    }
+    updateDistroList(guessInput.value);
 });
 
-guessInput.addEventListener('keypress', (e) => {
+guessInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+        e.preventDefault();
         distroListElement.innerHTML = '';
         setTimeout(() => {
             distroListElement.innerHTML = '';
