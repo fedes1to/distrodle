@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    if: github.repository == 'fedes1to/portfolio'
+    if: github.repository == 'fedes1to/distrodle'
     runs-on: ubuntu-latest
 
     steps:
