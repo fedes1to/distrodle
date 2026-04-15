@@ -281,8 +281,9 @@ async function handleGuess() {
             }
             
             displayFeedback(data.feedback, data.matchedName);
-            guessCount = data.guessCount;
             guessedDistros.push(matchedName);
+            // Keep tries aligned with the guesses accepted in this round.
+            guessCount = guessedDistros.length;
             updateDistroList();
             
             // Remove previous answer wrapper after first guess
@@ -504,7 +505,8 @@ function showHint(hint) {
 
 // Show victory modal
 function showVictory() {
-    guessCountElement.textContent = guessCount;
+    const tries = guessedDistros.length || guessCount;
+    guessCountElement.textContent = tries;
     victoryModal.classList.remove('hidden');
     guessInput.disabled = true;
     guessBtn.disabled = true;
