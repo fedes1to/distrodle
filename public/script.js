@@ -20,6 +20,8 @@ let playerStats = {
     gamesWon: 0
 };
 let newGameRequestSeq = 0;
+let isStartingNewGame = false;
+let currentRoundToken = 0;
 
 // DOM elements
 const guessInput = document.getElementById('guess-input');
@@ -124,7 +126,11 @@ function updateDistroList(filterText = '') {
 
 // Start a new game
 async function startNewGame() {
+    if (isStartingNewGame) return;
+
+    isStartingNewGame = true;
     const requestSeq = ++newGameRequestSeq;
+    currentRoundToken += 1;
 
     try {
         // Starting a new round after guessing but before solving counts as a loss.
@@ -180,6 +186,7 @@ async function startNewGame() {
         if (requestSeq === newGameRequestSeq) {
             newGameBtn.disabled = false;
             playAgainBtn.disabled = false;
+            isStartingNewGame = false;
         }
     }
 }
@@ -217,7 +224,9 @@ function displayStats() {
 
 // Handle guess submission
 async function handleGuess() {
-    if (isProcessing) return;
+    if (isProcessing || isStartingNewGame) return;
+
+    const guessRoundToken = currentRoundToken;
     
     const guess = guessInput.value.trim();
     
@@ -280,6 +289,11 @@ async function handleGuess() {
         });
         
         const data = await response.json();
+
+        // Ignore responses that belong to an older round.
+        if (guessRoundToken !== currentRoundToken) {
+            return;
+        }
         
         if (response.ok) {
             hasGuessedThisRound = true;

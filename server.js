@@ -81,6 +81,14 @@ app.get('/api/target', (req, res) => {
 // Check guess against target
 app.post('/api/guess', (req, res) => {
     const { guessName, targetId } = req.body;
+
+    if (!gameState.currentTarget) {
+        return res.status(409).json({ error: 'No active round. Start a new game.' });
+    }
+
+    if (String(targetId) !== String(gameState.currentTarget.id)) {
+        return res.status(409).json({ error: 'Round changed. Please try again.' });
+    }
     
     let guessNameProcessed = guessName.trim();
     
@@ -97,7 +105,7 @@ app.post('/api/guess', (req, res) => {
         }
     }
     
-    const target = distros.find(d => String(d.id) === String(targetId));
+    const target = gameState.currentTarget;
     
     if (!guess || !target) {
         return res.status(404).json({ error: 'Distribution not found' });
