@@ -187,7 +187,7 @@
     "yearReleased": 2002,
     "desktopEnvironment": "GNOME",
     "architecture": "x86_64, ARM, IBM Z",
-    "category": "Server, Enterprise",
+    "category": "Enterprise, Server",
     "popularity": "High",
     "discontinued": "No"
   },
@@ -203,7 +203,7 @@
     "yearReleased": 2005,
     "desktopEnvironment": "None",
     "architecture": "x86_64, ARM, MIPS",
-    "category": "Server, Container",
+    "category": "Container, Server",
     "popularity": "High",
     "discontinued": "No"
   },
@@ -267,7 +267,7 @@
     "yearReleased": 2013,
     "desktopEnvironment": "XFCE",
     "architecture": "x86_64, ARM",
-    "category": "Security, Penetration Testing",
+    "category": "Penetration Testing, Security",
     "popularity": "High",
     "discontinued": "No"
   },
@@ -459,7 +459,7 @@
     "yearReleased": 2014,
     "desktopEnvironment": "Fluxbox",
     "architecture": "x86_64, ARM",
-    "category": "Security, Penetration Testing",
+    "category": "Penetration Testing, Security",
     "popularity": "Medium",
     "discontinued": "No"
   },
@@ -635,7 +635,7 @@
     "yearReleased": 2009,
     "desktopEnvironment": "GNOME",
     "architecture": "x86_64",
-    "category": "Security, Privacy",
+    "category": "Privacy, Security",
     "popularity": "Medium",
     "discontinued": "No"
   },
@@ -651,7 +651,7 @@
     "yearReleased": 2013,
     "desktopEnvironment": "MATE",
     "architecture": "x86_64, ARM",
-    "category": "Security, Penetration Testing",
+    "category": "Penetration Testing, Security",
     "popularity": "Medium",
     "discontinued": "No"
   },
@@ -667,7 +667,7 @@
     "yearReleased": 2012,
     "desktopEnvironment": "XFCE",
     "architecture": "x86_64",
-    "category": "Security, Privacy",
+    "category": "Privacy, Security",
     "popularity": "Low",
     "discontinued": "No"
   },
@@ -747,7 +747,7 @@
     "yearReleased": 2013,
     "desktopEnvironment": "KDE",
     "architecture": "x86_64, ARM",
-    "category": "Gaming, Desktop",
+    "category": "Desktop, Gaming",
     "popularity": "Medium",
     "discontinued": "No"
   },
@@ -779,7 +779,7 @@
     "yearReleased": 2023,
     "desktopEnvironment": "KDE",
     "architecture": "x86_64",
-    "category": "Gaming, Desktop",
+    "category": "Desktop, Gaming",
     "popularity": "Medium",
     "discontinued": "No"
   },
@@ -1019,7 +1019,7 @@
     "yearReleased": 2006,
     "desktopEnvironment": "KDE",
     "architecture": "x86_64, i686",
-    "category": "Security, Penetration Testing",
+    "category": "Penetration Testing, Security",
     "popularity": "Low",
     "discontinued": "Yes"
   }
