@@ -22,6 +22,7 @@ let playerStats = {
 let newGameRequestSeq = 0;
 let isStartingNewGame = false;
 let currentRoundToken = 0;
+let distroListRequestSeq = 0;
 const CLIENT_ID_STORAGE_KEY = 'distrodleClientId';
 const OPTIONS_STORAGE_KEY = 'distrodleOptions';
 let gameOptions = {
@@ -58,6 +59,7 @@ function applyOptionConstraints() {
 }
 
 async function loadDistroList() {
+    const requestSeq = ++distroListRequestSeq;
     const response = await fetch(`/api/distros?${getOptionQuery()}`);
     if (!response.ok) {
         let message = 'Failed to load distro pool';
@@ -71,7 +73,15 @@ async function loadDistroList() {
         }
         throw new Error(message);
     }
-    distroList = await response.json();
+
+    const nextList = await response.json();
+    // Ignore stale responses from older option/new-game requests.
+    if (requestSeq !== distroListRequestSeq) {
+        return;
+    }
+
+    distroList = nextList;
+    displayStats();
 }
 
 function loadOptions() {
