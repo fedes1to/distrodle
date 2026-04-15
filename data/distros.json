@@ -342,25 +342,6 @@
     "popularity": "Low"
   },
   {
-    "id": "clear",
-    "name": "Clear Linux",
-    "logo": "💠",
-    "paid": false,
-    "initSystem": "systemd",
-    "releaseType": "Rolling",
-    "parentDistro": "Independent",
-    "packageManager": "Swupd",
-    "difficulty": "Advanced",
-    "yearReleased": 2015,
-    "desktopEnvironment": "GNOME",
-    "architecture": "x86_64",
-    "basedOn": "Independent",
-    "origin": "USA",
-    "category": "Desktop, Server, Cloud",
-    "status": "Active",
-    "popularity": "Low"
-  },
-  {
     "id": "zorin",
     "name": "Zorin OS",
     "logo": "💿",

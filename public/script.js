@@ -6,6 +6,12 @@ let distroList = [];
 let guessedDistros = [];
 let isProcessing = false;
 let isInitialLoad = true;
+let hasGuessedThisRound = false;
+const STATS_STORAGE_KEY = 'distrodleStats';
+let playerStats = {
+    gamesPlayed: 0,
+    gamesWon: 0
+};
 
 // DOM elements
 const guessInput = document.getElementById('guess-input');
@@ -70,6 +76,9 @@ function playSound(type) {
 // Initialize game
 async function initGame() {
     try {
+        loadStats();
+        renderStats();
+
         // Load distro list for autocomplete
         const response = await fetch('/api/distros');
         distroList = await response.json();
@@ -113,6 +122,11 @@ function updateDistroList(filterText = '') {
 // Start a new game
 async function startNewGame() {
     try {
+        // Starting a new round after guessing but before solving counts as a loss.
+        if (!isInitialLoad && !gameWon && hasGuessedThisRound) {
+            recordLoss();
+        }
+
         const response = await fetch('/api/target');
         const data = await response.json();
         targetId = data.id;
@@ -126,6 +140,7 @@ async function startNewGame() {
         // Reset game state
         guessCount = 0;
         gameWon = false;
+        hasGuessedThisRound = false;
         guessedDistros = [];
         feedbackContainer.innerHTML = '';
         updateDistroList();
@@ -227,6 +242,8 @@ async function handleGuess() {
         const data = await response.json();
         
         if (response.ok) {
+            hasGuessedThisRound = true;
+
             // Play sound based on result
             if (data.isCorrect) {
                 playSound('correct');
@@ -257,6 +274,9 @@ async function handleGuess() {
             }
             
             if (data.isCorrect) {
+                if (!gameWon) {
+                    recordWin();
+                }
                 gameWon = true;
                 setTimeout(() => showVictory(), 500);
             }
@@ -340,6 +360,60 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+function loadStats() {
+    try {
+        const raw = localStorage.getItem(STATS_STORAGE_KEY);
+        if (!raw) return;
+
+        const parsed = JSON.parse(raw);
+        const gamesPlayed = Number.isFinite(parsed.gamesPlayed) ? Math.max(0, Math.floor(parsed.gamesPlayed)) : 0;
+        const gamesWon = Number.isFinite(parsed.gamesWon) ? Math.max(0, Math.floor(parsed.gamesWon)) : 0;
+
+        playerStats.gamesPlayed = gamesPlayed;
+        playerStats.gamesWon = Math.min(gamesWon, gamesPlayed);
+        saveStats();
+    } catch (error) {
+        console.warn('Failed to load stats, resetting:', error);
+        playerStats = { gamesPlayed: 0, gamesWon: 0 };
+        saveStats();
+    }
+}
+
+function saveStats() {
+    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(playerStats));
+}
+
+function getWinRatePercent() {
+    if (playerStats.gamesPlayed === 0) {
+        return 0;
+    }
+
+    const ratio = playerStats.gamesWon / playerStats.gamesPlayed;
+    return Math.max(0, Math.min(100, Math.round(ratio * 100)));
+}
+
+function renderStats() {
+    const statsElement = document.getElementById('player-stats');
+    if (!statsElement) {
+        return;
+    }
+
+    statsElement.textContent = `Games: ${playerStats.gamesPlayed} | Wins: ${playerStats.gamesWon} | Win Rate: ${getWinRatePercent()}%`;
+}
+
+function recordWin() {
+    playerStats.gamesPlayed += 1;
+    playerStats.gamesWon += 1;
+    saveStats();
+    renderStats();
+}
+
+function recordLoss() {
+    playerStats.gamesPlayed += 1;
+    saveStats();
+    renderStats();
+}
+
 // Display feedback for a guess
 function displayFeedback(feedback, matchedName) {
     const row = document.createElement('div');
@@ -378,6 +452,7 @@ function displayFeedback(feedback, matchedName) {
         }
         
         cell.textContent = displayValue;
+        cell.dataset.label = attr.label;
         
         cell.style.setProperty('--cell-index', index);
         cell.classList.add('feedback-cell-animated');

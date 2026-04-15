@@ -66,6 +66,14 @@ header h1 {
     color: var(--text-primary);
     letter-spacing: 2px;
     text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.site-icon {
+    width: 1.4rem;
+    height: 1.4rem;
 }
 
 header p {
@@ -467,25 +475,42 @@ footer {
     }
     
     .feedback-row {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.5rem;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .feedback-row + .feedback-row {
+        margin-top: 0.85rem;
+        border-top: 2px dashed var(--border-color);
     }
     
     .feedback-cell {
-        min-height: auto;
-        padding: 0.75rem;
+        min-height: 64px;
+        padding: 0.55rem;
+        flex-direction: column;
         justify-content: flex-start;
         text-align: left;
-        gap: 0.5rem;
+        align-items: flex-start;
+        gap: 0.35rem;
     }
     
     .feedback-cell::before {
-        content: attr(title);
-        font-size: 0.7rem;
+        content: attr(data-label);
+        font-size: 0.62rem;
         color: var(--text-secondary);
         text-transform: uppercase;
-        min-width: 80px;
+        letter-spacing: 0.4px;
+        line-height: 1.2;
+    }
+
+    .site-icon {
+        width: 1.15rem;
+        height: 1.15rem;
     }
     
     .legend {
