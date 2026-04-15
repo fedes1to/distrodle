@@ -19,6 +19,7 @@ let playerStats = {
     gamesPlayed: 0,
     gamesWon: 0
 };
+let newGameRequestSeq = 0;
 
 // DOM elements
 const guessInput = document.getElementById('guess-input');
@@ -30,6 +31,7 @@ const distroListElement = document.getElementById('distro-list');
 const victoryModal = document.getElementById('victory-modal');
 const guessCountElement = document.getElementById('guess-count');
 const playAgainBtn = document.getElementById('play-again-btn');
+const firstGuessHelp = document.getElementById('first-guess-help');
 
 // Sound effects (using Web Audio API)
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -122,14 +124,25 @@ function updateDistroList(filterText = '') {
 
 // Start a new game
 async function startNewGame() {
+    const requestSeq = ++newGameRequestSeq;
+
     try {
         // Starting a new round after guessing but before solving counts as a loss.
         if (!isInitialLoad && !gameWon && hasGuessedThisRound) {
             recordLoss();
         }
 
+        newGameBtn.disabled = true;
+        playAgainBtn.disabled = true;
+
         const response = await fetch('/api/target');
         const data = await response.json();
+
+        // Ignore stale responses from older in-flight requests.
+        if (requestSeq !== newGameRequestSeq) {
+            return;
+        }
+
         targetId = data.id;
         
         // Show previous answer if there was one that wasn't guessed and not initial page load
@@ -151,6 +164,9 @@ async function startNewGame() {
         guessedDistros = [];
         feedbackContainer.innerHTML = '';
         updateDistroList();
+        if (firstGuessHelp) {
+            firstGuessHelp.classList.remove('hidden');
+        }
         // Keep header visible so users know what each column means
         victoryModal.classList.add('hidden');
         guessInput.value = '';
@@ -160,6 +176,11 @@ async function startNewGame() {
         console.log('New game started! Target:', data.name);
     } catch (error) {
         console.error('Error starting new game:', error);
+    } finally {
+        if (requestSeq === newGameRequestSeq) {
+            newGameBtn.disabled = false;
+            playAgainBtn.disabled = false;
+        }
     }
 }
 
@@ -285,6 +306,10 @@ async function handleGuess() {
             // Keep tries aligned with the guesses accepted in this round.
             guessCount = guessedDistros.length;
             updateDistroList();
+
+            if (firstGuessHelp && guessedDistros.length === 1) {
+                firstGuessHelp.classList.add('hidden');
+            }
             
             // Remove previous answer wrapper after first guess
             document.querySelectorAll('.previous-answer-wrapper').forEach(el => el.remove());

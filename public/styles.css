@@ -164,6 +164,17 @@ header p {
     align-items: center;
 }
 
+#first-guess-help {
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+}
+
+#first-guess-help.hidden {
+    display: none;
+}
+
 .input-wrapper {
     display: flex;
     align-items: center;
