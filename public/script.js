@@ -302,7 +302,6 @@ async function startNewGame() {
         guessInput.disabled = false;
         guessBtn.disabled = false;
         
-        console.log('New game started! Target:', data.name);
     } catch (error) {
         console.error('Error starting new game:', error);
     } finally {
