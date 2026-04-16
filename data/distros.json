@@ -1031,7 +1031,7 @@
     "releaseType": "Stable",
     "parentDistro": "Debian",
     "packageManager": "APT",
-    "difficulty": "Easy",
+    "difficulty": "Beginner",
     "yearReleased": 2021,
     "desktopEnvironment": "LXDE",
     "architecture": "x86_64, ARM",
