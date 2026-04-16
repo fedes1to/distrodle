@@ -305,14 +305,43 @@ function compareDistros(guess, target) {
             status: getStatus(guess.architecture, target.architecture)
         },
         category: {
-            value: guess.category,
-            status: getStatus(guess.category, target.category)
+            value: sortCategoryValues(guess.category),
+            status: getCategoryStatus(guess.category, target.category)
         }
     };
 }
 
 function getStatus(guess, target) {
     if (guess === target) return 'correct';
+    return 'incorrect';
+}
+
+// Helper function to sort category values alphabetically
+function sortCategoryValues(category) {
+    if (!category || typeof category !== 'string') return category;
+    return category
+        .split(',')
+        .map(s => s.trim())
+        .sort((a, b) => a.localeCompare(b))
+        .join(', ');
+}
+
+// Helper function to compare categories with partial matching
+function getCategoryStatus(guessCategory, targetCategory) {
+    const sortedGuess = sortCategoryValues(guessCategory);
+    const sortedTarget = sortCategoryValues(targetCategory);
+    
+    // If exact match after sorting, return correct
+    if (sortedGuess === sortedTarget) return 'correct';
+    
+    // Split into arrays for comparison
+    const guessItems = sortedGuess.split(', ').map(s => s.trim()).filter(s => s);
+    const targetItems = sortedTarget.split(', ').map(s => s.trim()).filter(s => s);
+    
+    // Check if there's at least one common element
+    const hasCommonElement = guessItems.some(item => targetItems.includes(item));
+    
+    if (hasCommonElement) return 'partial';
     return 'incorrect';
 }
 
