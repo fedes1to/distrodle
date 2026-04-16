@@ -1022,5 +1022,22 @@
     "category": "Penetration Testing, Security",
     "popularity": "Low",
     "discontinued": "Yes"
+  },
+  {
+    "id": "amogos",
+    "name": "AmogOS",
+    "paid": false,
+    "initSystem": "systemd",
+    "releaseType": "Stable",
+    "parentDistro": "Debian",
+    "packageManager": "APT",
+    "difficulty": "Easy",
+    "yearReleased": 2021,
+    "desktopEnvironment": "LXDE",
+    "architecture": "x86_64, ARM",
+    "category": "Desktop, Meme",
+    "popularity": "Medium",
+    "discontinued": "Yes"
   }
+
 ]
