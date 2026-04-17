@@ -1084,7 +1084,7 @@
     "desktopEnvironment": "KDE",
     "architecture": "x86_64",
     "category": "Desktop, Server",
-    "popularity": "Low",
+    "popularity": "Very Low",
     "discontinued": "No"
   },
   {
@@ -1100,7 +1100,7 @@
     "desktopEnvironment": "XFCE",
     "architecture": "x86_64, ARM",
     "category": "Desktop",
-    "popularity": "Low",
+    "popularity": "Very Low",
     "discontinued": "No"
   },
   {
@@ -1115,7 +1115,7 @@
     "yearReleased": 2009,
     "desktopEnvironment": "KDE",
     "architecture": "x86_64",
-    "category": "Desktop",
+    "category": "Desktop, Meme",
     "popularity": "Very Low",
     "discontinued": "Yes"
   },
