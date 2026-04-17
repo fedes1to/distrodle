@@ -1040,6 +1040,22 @@
     "discontinued": "Yes"
   },
   {
+    "id": "hannah_montana",
+    "name": "Hannah Montana Linux",
+    "paid": false,
+    "initSystem": "systemd",
+    "releaseType": "Stable",
+    "parentDistro": "Kubuntu",
+    "packageManager": "APT",
+    "difficulty": "Beginner",
+    "yearReleased": 2009,
+    "desktopEnvironment": "KDE",
+    "architecture": "x86_64",
+    "category": "Desktop",
+    "popularity": "Very Low",
+    "discontinued": "Yes"
+  },
+  {
     "id": "amogos",
     "name": "AmogOS",
     "paid": false,
@@ -1054,6 +1070,5 @@
     "category": "Desktop, Meme",
     "popularity": "Medium",
     "discontinued": "Yes"
-  }
-
+  },
 ]
