@@ -106,7 +106,7 @@
     "difficulty": "Intermediate",
     "yearReleased": 2005,
     "desktopEnvironment": "KDE",
-    "architecture": "x86_64, ARM",
+    "architecture": "x86_64, ARM, Power, IBM Z",
     "category": "Desktop, Server",
     "popularity": "Medium",
     "discontinued": "No"
@@ -122,7 +122,7 @@
     "difficulty": "Intermediate",
     "yearReleased": 2005,
     "desktopEnvironment": "KDE",
-    "architecture": "x86_64, ARM",
+    "architecture": "x86_64, ARM, Power, IBM Z",
     "category": "Desktop, Server",
     "popularity": "Medium",
     "discontinued": "No"
