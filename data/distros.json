@@ -1103,6 +1103,7 @@
     "popularity": "Low",
     "discontinued": "No"
   },
+  {
     "id": "hannah_montana",
     "name": "Hannah Montana Linux",
     "paid": false,
@@ -1133,5 +1134,5 @@
     "category": "Desktop, Meme",
     "popularity": "Medium",
     "discontinued": "Yes"
-  },
+  }
 ]
