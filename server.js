@@ -88,6 +88,15 @@ app.get('/api/distros', (req, res) => {
     res.json(filteredDistros.map(d => d.name));
 });
 
+// Get full distro data for Learn Mode
+app.get('/api/distros/full', (req, res) => {
+    const includeVeryLow = parseBooleanOption(req.query.includeVeryLow, true);
+    const includeDiscontinued = parseBooleanOption(req.query.includeDiscontinued, true);
+    const filteredDistros = getFilteredDistros({ includeVeryLow, includeDiscontinued });
+
+    res.json(filteredDistros);
+});
+
 // Get random target distro
 app.get('/api/target', (req, res) => {
     const gameState = getGameState(req);

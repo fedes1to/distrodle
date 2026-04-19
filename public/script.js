@@ -703,6 +703,501 @@ function toggleInstructionsModal() {
     }
 }
 
+// Learn Mode state and functions
+let learnModeTree = null;
+let learnModeDistros = null;
+let learnModeFilters = {
+    search: '',
+    category: 'all',
+    paidOnly: false,
+    activeOnly: true
+};
+let searchDebounceTimer = null;
+
+const learnModeModal = document.getElementById('learn-mode-modal');
+const learnModeBtn = document.getElementById('learn-mode-btn');
+const closeLearnModeBtn = document.getElementById('close-learn-mode-btn');
+const learnTreeContainer = document.getElementById('learn-tree-container');
+const learnSearchInput = document.getElementById('learn-search');
+const learnCategoryFilter = document.getElementById('learn-category-filter');
+const learnPaidOnlyCheckbox = document.getElementById('learn-paid-only');
+const learnActiveOnlyCheckbox = document.getElementById('learn-active-only');
+const learnExpandAllBtn = document.getElementById('learn-expand-all');
+const learnCollapseAllBtn = document.getElementById('learn-collapse-all');
+
+function buildDistroTree(distros) {
+    // Create a map of all distros
+    const distroMap = new Map();
+
+    distros.forEach(distro => {
+        distroMap.set(distro.name, {
+            ...distro,
+            children: [],
+            isExpanded: true
+        });
+    });
+
+    // Handle special case: Mageia references "Mandriva" but the name is "Mandriva Linux"
+    distros.forEach(distro => {
+        const node = distroMap.get(distro.name);
+        let parentName = distro.parentDistro;
+
+        // Special case for Mageia
+        if (parentName === 'Mandriva' && !distroMap.has('Mandriva')) {
+            parentName = 'Mandriva Linux';
+        }
+
+        if (parentName !== 'Independent' && distroMap.has(parentName)) {
+            const parent = distroMap.get(parentName);
+            parent.children.push(node);
+        }
+    });
+
+    // Get root nodes (independent distros) and sort by year
+    const roots = Array.from(distroMap.values())
+        .filter(d => d.parentDistro === 'Independent')
+        .sort((a, b) => a.yearReleased - b.yearReleased);
+
+    // Sort children alphabetically for each node
+    function sortChildren(node) {
+        if (node.children.length > 0) {
+            node.children.sort((a, b) => a.name.localeCompare(b.name));
+            node.children.forEach(sortChildren);
+        }
+    }
+
+    roots.forEach(sortChildren);
+
+    return roots;
+}
+
+function getCategoryClass(category) {
+    const categories = category.toLowerCase();
+    if (categories.includes('gaming')) return 'cat-gaming';
+    if (categories.includes('security') || categories.includes('penetration')) return 'cat-security';
+    if (categories.includes('enterprise')) return 'cat-enterprise';
+    if (categories.includes('server')) return 'cat-server';
+    if (categories.includes('desktop')) return 'cat-desktop';
+    return '';
+}
+
+function getDifficultyClass(difficulty) {
+    const diff = difficulty.toLowerCase();
+    if (diff === 'beginner') return 'diff-beginner';
+    if (diff === 'intermediate') return 'diff-intermediate';
+    if (diff === 'advanced') return 'diff-advanced';
+    if (diff === 'expert') return 'diff-expert';
+    return '';
+}
+
+function getNodeSymbols(node) {
+    let symbols = [];
+
+    if (node.parentDistro === 'Independent') {
+        symbols.push('◆');
+    }
+    if (node.paid) {
+        symbols.push('$');
+    }
+    if (node.category && node.category.toLowerCase().includes('gaming')) {
+        symbols.push('★');
+    }
+    if (node.discontinued === 'Yes') {
+        symbols.push('⚠');
+    }
+
+    return symbols.join(' ');
+}
+
+function matchesFilters(node) {
+    // Search filter
+    if (learnModeFilters.search) {
+        const searchLower = learnModeFilters.search.toLowerCase();
+        if (!node.name.toLowerCase().includes(searchLower)) {
+            return false;
+        }
+    }
+
+    // Category filter
+    if (learnModeFilters.category !== 'all') {
+        if (!node.category.toLowerCase().includes(learnModeFilters.category.toLowerCase())) {
+            return false;
+        }
+    }
+
+    // Paid filter
+    if (learnModeFilters.paidOnly && !node.paid) {
+        return false;
+    }
+
+    // Active filter
+    if (learnModeFilters.activeOnly && node.discontinued === 'Yes') {
+        return false;
+    }
+
+    return true;
+}
+
+function hasMatchingDescendants(node) {
+    if (matchesFilters(node)) {
+        return true;
+    }
+
+    return node.children.some(hasMatchingDescendants);
+}
+
+function renderTreeNode(node, level = 0, isLastChild = true, prefix = '') {
+    // Check if this node or any descendants match filters
+    if (!hasMatchingDescendants(node)) {
+        return '';
+    }
+
+    const nodeMatches = matchesFilters(node);
+    const categoryClass = getCategoryClass(node.category);
+    const difficultyClass = getDifficultyClass(node.difficulty);
+    const symbols = getNodeSymbols(node);
+    const hasChildren = node.children.length > 0;
+    const expandIcon = hasChildren ? (node.isExpanded ? '▼' : '▶') : '';
+    const expandIconClass = hasChildren ? '' : 'no-children';
+
+    // Build tree line prefix
+    const lineChar = isLastChild ? '└─' : '├─';
+    const fullPrefix = level > 0 ? prefix + lineChar + ' ' : '';
+
+    // Store distro data for tooltip
+    const distroData = JSON.stringify({
+        name: node.name,
+        yearReleased: node.yearReleased,
+        parentDistro: node.parentDistro,
+        category: node.category,
+        difficulty: node.difficulty,
+        paid: node.paid,
+        discontinued: node.discontinued,
+        initSystem: node.initSystem,
+        packageManager: node.packageManager,
+        desktopEnvironment: node.desktopEnvironment,
+        popularity: node.popularity,
+        architecture: node.architecture,
+        releaseType: node.releaseType
+    }).replace(/"/g, '&quot;');
+
+    let html = '';
+
+    if (nodeMatches) {
+        html += `<div class="tree-node ${categoryClass} ${difficultyClass}" data-node-id="${node.id}">`;
+        html += `  <div class="tree-node-content">`;
+        html += `    <span class="tree-line-prefix">${fullPrefix}</span>`;
+        html += `    <span class="tree-expand-icon ${expandIconClass}">${expandIcon}</span>`;
+        html += `    <span class="tree-node-name" data-distro='${distroData}'>${node.name}</span>`;
+        if (symbols) {
+            html += `    <span class="tree-node-symbols">${symbols}</span>`;
+        }
+        html += `  </div>`;
+
+        if (hasChildren) {
+            const childPrefix = level > 0 ? prefix + (isLastChild ? '  ' : '│ ') : '';
+            const childrenClass = node.isExpanded ? '' : 'collapsed';
+            html += `  <div class="tree-children ${childrenClass}">`;
+            node.children.forEach((child, index) => {
+                const isLast = index === node.children.length - 1;
+                html += renderTreeNode(child, level + 1, isLast, childPrefix);
+            });
+            html += `  </div>`;
+        }
+
+        html += `</div>`;
+    } else if (hasChildren) {
+        // Node doesn't match but has children that might match
+        const childPrefix = level > 0 ? prefix + (isLastChild ? '  ' : '│ ') : '';
+        node.children.forEach((child, index) => {
+            const isLast = index === node.children.length - 1;
+            html += renderTreeNode(child, level, isLast, prefix);
+        });
+    }
+
+    return html;
+}
+
+function renderLearnModeTree() {
+    if (!learnModeTree || !learnTreeContainer) return;
+
+    let html = '';
+    learnModeTree.forEach(root => {
+        html += renderTreeNode(root, 0, true, '');
+    });
+
+    if (html === '') {
+        html = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">No distros match the current filters.</div>';
+    }
+
+    learnTreeContainer.innerHTML = html;
+
+    // Add click handlers for expand/collapse
+    learnTreeContainer.querySelectorAll('.tree-node').forEach(nodeEl => {
+        const nodeId = nodeEl.dataset.nodeId;
+        const expandIcon = nodeEl.querySelector('.tree-expand-icon');
+
+        if (expandIcon && !expandIcon.classList.contains('no-children')) {
+            expandIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleNodeExpansion(nodeId);
+            });
+        }
+    });
+
+    // Add tooltip handlers for distro names
+    setupDistroTooltips();
+}
+
+let tooltipElement = null;
+
+function setupDistroTooltips() {
+    const distroNames = learnTreeContainer.querySelectorAll('.tree-node-name');
+
+    distroNames.forEach(nameEl => {
+        nameEl.addEventListener('mouseenter', showDistroTooltip);
+        nameEl.addEventListener('mousemove', moveDistroTooltip);
+        nameEl.addEventListener('mouseleave', hideDistroTooltip);
+    });
+}
+
+function showDistroTooltip(e) {
+    const distroData = JSON.parse(e.target.dataset.distro);
+
+    // Create tooltip element
+    tooltipElement = document.createElement('div');
+    tooltipElement.className = 'distro-tooltip';
+
+    const paidStatus = distroData.paid ? 'Yes' : 'No';
+    const discontinuedStatus = distroData.discontinued;
+
+    tooltipElement.innerHTML = `
+        <div class="distro-tooltip-header">${distroData.name}</div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Year Released:</span>
+            <span class="distro-tooltip-value">${distroData.yearReleased}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Parent:</span>
+            <span class="distro-tooltip-value">${distroData.parentDistro}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Category:</span>
+            <span class="distro-tooltip-value">${distroData.category}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Difficulty:</span>
+            <span class="distro-tooltip-value">${distroData.difficulty}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Package Manager:</span>
+            <span class="distro-tooltip-value">${distroData.packageManager}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Init System:</span>
+            <span class="distro-tooltip-value">${distroData.initSystem}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Desktop:</span>
+            <span class="distro-tooltip-value">${distroData.desktopEnvironment}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Release Type:</span>
+            <span class="distro-tooltip-value">${distroData.releaseType}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Architecture:</span>
+            <span class="distro-tooltip-value">${distroData.architecture}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Popularity:</span>
+            <span class="distro-tooltip-value">${distroData.popularity}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Paid:</span>
+            <span class="distro-tooltip-value">${paidStatus}</span>
+        </div>
+        <div class="distro-tooltip-row">
+            <span class="distro-tooltip-label">Status:</span>
+            <span class="distro-tooltip-value">${discontinuedStatus === 'Yes' ? 'Discontinued' : 'Active'}</span>
+        </div>
+    `;
+
+    document.body.appendChild(tooltipElement);
+    moveDistroTooltip(e);
+}
+
+function moveDistroTooltip(e) {
+    if (!tooltipElement) return;
+
+    const tooltipWidth = tooltipElement.offsetWidth;
+    const tooltipHeight = tooltipElement.offsetHeight;
+    const padding = 15;
+
+    let left = e.clientX + padding;
+    let top = e.clientY + padding;
+
+    // Adjust if tooltip goes off right edge
+    if (left + tooltipWidth > window.innerWidth) {
+        left = e.clientX - tooltipWidth - padding;
+    }
+
+    // Adjust if tooltip goes off bottom edge
+    if (top + tooltipHeight > window.innerHeight) {
+        top = e.clientY - tooltipHeight - padding;
+    }
+
+    tooltipElement.style.left = left + 'px';
+    tooltipElement.style.top = top + 'px';
+}
+
+function hideDistroTooltip() {
+    if (tooltipElement) {
+        tooltipElement.remove();
+        tooltipElement = null;
+    }
+}
+
+function toggleNodeExpansion(nodeId) {
+    // Find and toggle the node in the tree
+    function toggleInTree(nodes) {
+        for (const node of nodes) {
+            if (node.id === nodeId) {
+                node.isExpanded = !node.isExpanded;
+                return true;
+            }
+            if (node.children.length > 0 && toggleInTree(node.children)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    toggleInTree(learnModeTree);
+    renderLearnModeTree();
+}
+
+function expandAllNodes(nodes) {
+    nodes.forEach(node => {
+        node.isExpanded = true;
+        if (node.children.length > 0) {
+            expandAllNodes(node.children);
+        }
+    });
+}
+
+function collapseAllNodes(nodes) {
+    nodes.forEach(node => {
+        node.isExpanded = false;
+        if (node.children.length > 0) {
+            collapseAllNodes(node.children);
+        }
+    });
+}
+
+async function openLearnMode() {
+    if (!learnModeModal) return;
+
+    // Fetch distros if not already loaded
+    if (!learnModeDistros) {
+        try {
+            const response = await fetch('/api/distros/full?includeVeryLow=true&includeDiscontinued=true');
+            if (!response.ok) {
+                showToast('Failed to load distros for Learn Mode', 'error');
+                return;
+            }
+            learnModeDistros = await response.json();
+        } catch (error) {
+            console.error('Error loading distros:', error);
+            showToast('Failed to load distros for Learn Mode', 'error');
+            return;
+        }
+    }
+
+    // Build tree if not already built
+    if (!learnModeTree) {
+        learnModeTree = buildDistroTree(learnModeDistros);
+    }
+
+    // Render tree
+    renderLearnModeTree();
+
+    // Show modal
+    learnModeModal.classList.remove('hidden');
+}
+
+function closeLearnMode() {
+    if (!learnModeModal) return;
+    learnModeModal.classList.add('hidden');
+    hideDistroTooltip();
+}
+
+function applyLearnModeFilters() {
+    renderLearnModeTree();
+}
+
+// Event listeners for Learn Mode
+if (learnModeBtn) {
+    learnModeBtn.addEventListener('click', openLearnMode);
+}
+
+if (closeLearnModeBtn) {
+    closeLearnModeBtn.addEventListener('click', closeLearnMode);
+}
+
+if (learnModeModal) {
+    learnModeModal.addEventListener('click', (e) => {
+        if (e.target === learnModeModal) {
+            closeLearnMode();
+        }
+    });
+}
+
+if (learnSearchInput) {
+    learnSearchInput.addEventListener('input', (e) => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            learnModeFilters.search = e.target.value.trim();
+            applyLearnModeFilters();
+        }, 300);
+    });
+}
+
+if (learnCategoryFilter) {
+    learnCategoryFilter.addEventListener('change', (e) => {
+        learnModeFilters.category = e.target.value;
+        applyLearnModeFilters();
+    });
+}
+
+if (learnPaidOnlyCheckbox) {
+    learnPaidOnlyCheckbox.addEventListener('change', (e) => {
+        learnModeFilters.paidOnly = e.target.checked;
+        applyLearnModeFilters();
+    });
+}
+
+if (learnActiveOnlyCheckbox) {
+    learnActiveOnlyCheckbox.addEventListener('change', (e) => {
+        learnModeFilters.activeOnly = e.target.checked;
+        applyLearnModeFilters();
+    });
+}
+
+if (learnExpandAllBtn) {
+    learnExpandAllBtn.addEventListener('click', () => {
+        expandAllNodes(learnModeTree);
+        renderLearnModeTree();
+    });
+}
+
+if (learnCollapseAllBtn) {
+    learnCollapseAllBtn.addEventListener('click', () => {
+        collapseAllNodes(learnModeTree);
+        renderLearnModeTree();
+    });
+}
+
 // Confetti effect
 function createConfetti() {
     const colors = ['#4a9eff', '#4ade80', '#facc15'];
@@ -846,6 +1341,7 @@ document.addEventListener('keypress', (e) => {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeInstructionsModal();
+        closeLearnMode();
     }
 });
 

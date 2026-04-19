@@ -35,6 +35,7 @@
                         Discontinued
                     </label>
                     <button id="how-to-play-btn" class="btn option-help-btn">How To Play</button>
+                    <button id="learn-mode-btn" class="btn option-help-btn">Learn</button>
                 </div>
             </div>
             <div class="legend">
@@ -113,6 +114,76 @@
                     <li>Pool options let you include Very Low popularity and discontinued distros.</li>
                 </ul>
                 <button id="close-instructions-btn" class="btn">Close</button>
+            </div>
+        </div>
+
+        <div id="learn-mode-modal" class="hidden">
+            <div class="modal-content learn-mode-content">
+                <div class="learn-mode-header">
+                    <h2>Linux Distribution Family Tree</h2>
+                    <button id="close-learn-mode-btn" class="btn btn-close">×</button>
+                </div>
+
+                <div class="learn-mode-filters">
+                    <input type="text" id="learn-search" placeholder="Search distros..." autocomplete="off">
+
+                    <select id="learn-category-filter">
+                        <option value="all">All Categories</option>
+                        <option value="Desktop">Desktop</option>
+                        <option value="Server">Server</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Security">Security</option>
+                        <option value="Enterprise">Enterprise</option>
+                    </select>
+
+                    <label class="learn-filter-checkbox">
+                        <input type="checkbox" id="learn-paid-only">
+                        Paid Only
+                    </label>
+
+                    <label class="learn-filter-checkbox">
+                        <input type="checkbox" id="learn-active-only" checked>
+                        Active Only
+                    </label>
+
+                    <div class="learn-expand-controls">
+                        <button id="learn-expand-all" class="btn btn-small">Expand All</button>
+                        <button id="learn-collapse-all" class="btn btn-small">Collapse All</button>
+                    </div>
+                </div>
+
+                <div id="learn-tree-container" class="learn-tree-container"></div>
+
+                <div class="learn-legend">
+                    <div class="legend-section">
+                        <h3>Symbols</h3>
+                        <div class="legend-grid">
+                            <div><span class="symbol">◆</span> Independent</div>
+                            <div><span class="symbol">$</span> Paid</div>
+                            <div><span class="symbol">★</span> Gaming</div>
+                            <div><span class="symbol">⚠</span> Discontinued</div>
+                        </div>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Category Colors</h3>
+                        <div class="legend-grid">
+                            <div><span class="legend-box cat-desktop"></span> Desktop</div>
+                            <div><span class="legend-box cat-server"></span> Server</div>
+                            <div><span class="legend-box cat-gaming"></span> Gaming</div>
+                            <div><span class="legend-box cat-security"></span> Security</div>
+                            <div><span class="legend-box cat-enterprise"></span> Enterprise</div>
+                        </div>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Difficulty Borders</h3>
+                        <div class="legend-grid">
+                            <div><span class="legend-box diff-beginner"></span> Beginner</div>
+                            <div><span class="legend-box diff-intermediate"></span> Intermediate</div>
+                            <div><span class="legend-box diff-advanced"></span> Advanced</div>
+                            <div><span class="legend-box diff-expert"></span> Expert</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
