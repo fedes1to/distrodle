@@ -1068,7 +1068,7 @@
     "desktopEnvironment": "None",
     "architecture": "x86_64, i686, ARM",
     "category": "Desktop",
-    "popularity": "Low",
+    "popularity": "Very Low",
     "discontinued": "No"
   },
   {
@@ -1141,7 +1141,7 @@
     "paid": false,
     "initSystem": "systemd",
     "releaseType": "Stable",
-    "parentDistro": "Fedora Linux",
+    "parentDistro": "Fedora",
     "packageManager": "DNF",
     "difficulty": "Advanced",
     "yearReleased": 2008,
@@ -1149,6 +1149,38 @@
     "architecture": "IA-32, x86_64",
     "category": "Desktop",
     "popularity": "Very Low",
+    "discontinued": "No"
+  },
+  {
+    "id": "kdelinux",
+    "name": "KDE Linux",
+    "paid": false,
+    "initSystem": "systemd",
+    "releaseType": "Stable",
+    "parentDistro": "Independent",
+    "packageManager": "None",
+    "difficulty": "Advanced",
+    "yearReleased": 2025,
+    "desktopEnvironment": "KDE",
+    "architecture": "x86_64",
+    "category": "Desktop",
+    "popularity": "Low",
+    "discontinued": "No"
+  },
+  {
+    "id": "gnomeos",
+    "name": "GNOME OS",
+    "paid": false,
+    "initSystem": "systemd",
+    "releaseType": "Rolling",
+    "parentDistro": "Independent",
+    "packageManager": "None",
+    "difficulty": "Advanced",
+    "yearReleased": 2025,
+    "desktopEnvironment": "GNOME",
+    "architecture": "x86_64",
+    "category": "Desktop",
+    "popularity": "Low",
     "discontinued": "No"
   }
 ]
