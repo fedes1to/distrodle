@@ -806,7 +806,7 @@
     "initSystem": "systemd",
     "releaseType": "Rolling",
     "parentDistro": "Independent",
-    "packageManager": "pacman",
+    "packageManager": "Pacman",
     "difficulty": "Advanced",
     "yearReleased": 2025,
     "desktopEnvironment": "KDE, COSMIC",
