@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1a1a"/>
+      <stop offset="1" stop-color="#252525"/>
+    </linearGradient>
+    <linearGradient id="accentbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4ade80"/>
+      <stop offset="0.5" stop-color="#facc15"/>
+      <stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- top accent bar -->
+  <rect x="0" y="0" width="1200" height="8" fill="url(#accentbar)"/>
+
+  <!-- terminal window (ends at y=330, leaves padding before title) -->
+  <rect x="80" y="80" width="720" height="250" rx="14" fill="#2d2d2d" stroke="#444444" stroke-width="2"/>
+  <!-- window dots -->
+  <circle cx="112" cy="112" r="9" fill="#ef4444"/>
+  <circle cx="142" cy="112" r="9" fill="#facc15"/>
+  <circle cx="172" cy="112" r="9" fill="#4ade80"/>
+  <!-- prompt line -->
+  <text x="112" y="178" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="40" fill="#888888">$</text>
+  <text x="150" y="178" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="40" fill="#e0e0e0">./guess --distro</text>
+  <!-- feedback row of cells -->
+  <g>
+    <rect x="112" y="215" width="86" height="86" rx="8" fill="#4ade80" opacity="0.85"/>
+    <rect x="210" y="215" width="86" height="86" rx="8" fill="#facc15" opacity="0.85"/>
+    <rect x="308" y="215" width="86" height="86" rx="8" fill="#ef4444" opacity="0.85"/>
+    <rect x="406" y="215" width="86" height="86" rx="8" fill="#4ade80" opacity="0.85"/>
+    <rect x="504" y="215" width="86" height="86" rx="8" fill="#facc15" opacity="0.85"/>
+    <rect x="602" y="215" width="86" height="86" rx="8" fill="#4ade80" opacity="0.85"/>
+  </g>
+
+  <!-- title block (pushed down for padding from window) -->
+  <text x="80" y="500" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="104" font-weight="bold" fill="#e0e0e0">Distrodle</text>
+  <text x="84" y="560" font-family="'JetBrains Mono','DejaVu Sans Mono',monospace" font-size="40" fill="#4a9eff">Guess the Linux Distribution</text>
+</svg>
