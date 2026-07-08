@@ -535,6 +535,8 @@ function getPopularityDirection(guess, target) {
     return 'down'; // Target is less popular
 }
 
-app.listen(PORT, () => {
-    console.log(`Distrodle server running on http://localhost:${PORT}`);
+const HOST = process.env.HOST || '127.0.0.1';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Distrodle server running on http://${HOST}:${PORT}`);
 });
