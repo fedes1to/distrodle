@@ -2078,5 +2078,21 @@
     "category": "Desktop",
     "popularity": "Very Low",
     "discontinued": "Yes"
+  },
+  {
+    "id": "unraid",
+    "name": "Unraid",
+    "paid": true,
+    "initSystem": "sysvinit",
+    "releaseType": "Stable",
+    "parentDistro": "Slackware",
+    "packageManager": "Docker",
+    "difficulty": "Advanced",
+    "yearReleased": 2005,
+    "desktopEnvironment": "None",
+    "architecture": "x86_64",
+    "category": "Server",
+    "popularity": "Medium",
+    "discontinued": "No"
   }
 ]
