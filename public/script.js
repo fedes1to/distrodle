@@ -29,7 +29,8 @@ const VALID_DIFFICULTIES = ['Very Easy', 'Easy', 'Medium', 'Hard', 'Extreme'];
 const DEFAULT_DIFFICULTY = 'Hard';
 let gameOptions = {
     difficulty: DEFAULT_DIFFICULTY,
-    includeDiscontinued: false
+    includeDiscontinued: false,
+    includeBsd: false
 };
 
 // DOM elements
@@ -44,6 +45,8 @@ const guessCountElement = document.getElementById('guess-count');
 const playAgainBtn = document.getElementById('play-again-btn');
 const firstGuessHelp = document.getElementById('first-guess-help');
 const toggleDiscontinued = document.getElementById('toggle-discontinued');
+const toggleBsd = document.getElementById('toggle-bsd');
+const toggleBsdLabel = document.getElementById('toggle-bsd-label');
 const difficultySelect = document.getElementById('difficulty-select');
 const howToPlayBtn = document.getElementById('how-to-play-btn');
 const instructionsModal = document.getElementById('instructions-modal');
@@ -54,11 +57,18 @@ const optionsToggleBtn = document.getElementById('options-toggle-btn');
 const OPTIONS_PANEL_COLLAPSED_KEY = 'distrodleOptionsPanelCollapsed';
 
 function getOptionQuery() {
-    return `difficulty=${encodeURIComponent(gameOptions.difficulty)}&includeDiscontinued=${gameOptions.includeDiscontinued}`;
+    return `difficulty=${encodeURIComponent(gameOptions.difficulty)}&includeDiscontinued=${gameOptions.includeDiscontinued}&includeBsd=${gameOptions.includeBsd}`;
 }
 
 function applyOptionConstraints() {
-    // Discontinued is a separate toggle; no implicit dependency on difficulty.
+    const isExtreme = gameOptions.difficulty === 'Extreme';
+    if (toggleBsd) {
+        toggleBsd.disabled = !isExtreme;
+    }
+    if (toggleBsdLabel) {
+        toggleBsdLabel.classList.toggle('disabled', !isExtreme);
+        toggleBsdLabel.title = isExtreme ? 'Include BSD distributions in Extreme mode' : 'Available in Extreme difficulty only';
+    }
 }
 
 async function loadDistroList() {
@@ -119,6 +129,9 @@ function loadOptions() {
         if (parsed && typeof parsed.includeDiscontinued === 'boolean') {
             gameOptions.includeDiscontinued = parsed.includeDiscontinued;
         }
+        if (parsed && typeof parsed.includeBsd === 'boolean') {
+            gameOptions.includeBsd = parsed.includeBsd;
+        }
         applyOptionConstraints();
     } catch (error) {
         console.warn('Failed to load options, using defaults:', error);
@@ -175,6 +188,10 @@ function renderOptions() {
     if (toggleDiscontinued) {
         toggleDiscontinued.checked = gameOptions.includeDiscontinued;
     }
+    if (toggleBsd) {
+        toggleBsd.checked = gameOptions.includeBsd;
+    }
+    applyOptionConstraints();
 }
 
 function setDifficulty(difficulty) {
@@ -870,7 +887,9 @@ function buildDistroTree(distros) {
 }
 
 function getCategoryClass(category) {
-    const categories = category.toLowerCase();
+    const categories = (category || '').toLowerCase();
+    if (categories.includes('bsd')) return 'cat-bsd';
+    if (categories.includes('router') || categories.includes('firewall')) return 'cat-router';
     if (categories.includes('gaming')) return 'cat-gaming';
     if (categories.includes('security') || categories.includes('penetration')) return 'cat-security';
     if (categories.includes('enterprise')) return 'cat-enterprise';
@@ -918,7 +937,13 @@ function distrodexMatchesFilters(node) {
 
     // Category filter
     if (distrodexFilters.category !== 'all') {
-        if (!node.category.toLowerCase().includes(distrodexFilters.category.toLowerCase())) {
+        const catFilter = distrodexFilters.category.toLowerCase();
+        const nodeCat = (node.category || '').toLowerCase();
+        if (catFilter === 'bsd') {
+            if (!nodeCat.includes('bsd') && !node.isBsd) return false;
+        } else if (catFilter === 'router') {
+            if (!nodeCat.includes('router') && !nodeCat.includes('firewall')) return false;
+        } else if (!nodeCat.includes(catFilter)) {
             return false;
         }
     }
@@ -1378,6 +1403,16 @@ guessInput.addEventListener('blur', () => {
 if (toggleDiscontinued) {
     toggleDiscontinued.addEventListener('change', async () => {
         gameOptions.includeDiscontinued = toggleDiscontinued.checked;
+        applyOptionConstraints();
+        saveOptions();
+        renderOptions();
+        await applyOptionsAndRestart();
+    });
+}
+
+if (toggleBsd) {
+    toggleBsd.addEventListener('change', async () => {
+        gameOptions.includeBsd = toggleBsd.checked;
         applyOptionConstraints();
         saveOptions();
         renderOptions();
