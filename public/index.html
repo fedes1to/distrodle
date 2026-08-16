@@ -61,6 +61,10 @@
                                 <input type="checkbox" id="toggle-discontinued" title="Include discontinued distros">
                                 Discontinued
                             </label>
+                            <label class="option-item" for="toggle-bsd" id="toggle-bsd-label">
+                                <input type="checkbox" id="toggle-bsd" title="Include BSD distributions (Extreme only)">
+                                Include BSDs
+                            </label>
                         </div>
                         <div class="options-actions-col">
                             <span class="options-sub-label">Help:</span>
@@ -142,10 +146,11 @@
                     <li><strong>Goal:</strong> turn every cell green. That means your guess matches the target on every attribute and the round is solved.</li>
                     <li><strong>Difficulty</strong> sets how deep the pool goes by minimum popularity:
                         <ul class="instructions-sub-list">
-                            <li><strong>Easy</strong> — Very High and High popularity only. A handful of well-known distros.</li>
-                            <li><strong>Medium</strong> — adds Medium popularity. A noticeably bigger pool.</li>
-                            <li><strong>Hard</strong> — also includes Low popularity. The default.</li>
-                            <li><strong>Extreme</strong> — the full list, including Very Low popularity and discontinued distros.</li>
+                            <li><strong>Very Easy</strong> — High and Very High popularity only. A handful of the most famous distros.</li>
+                            <li><strong>Easy</strong> — adds Medium popularity.</li>
+                            <li><strong>Medium</strong> — adds Low popularity. A noticeably bigger pool.</li>
+                            <li><strong>Hard</strong> — also includes Low popularity, weighted towards less common distros. The default.</li>
+                            <li><strong>Extreme</strong> — the complete Linux catalog, including Very Low popularity, router OSes, and obscure distros. Use the <em>Include BSDs</em> toggle to add BSD distributions (FreeBSD, OpenBSD, NetBSD, GhostBSD, pfSense, etc.) into the pool.</li>
                         </ul>
                     </li>
                     <li><strong>The 12 attributes:</strong> Distro name, Paid, Init system, Release model, Parent distro, Package manager, Difficulty, Year released, Desktop, Popularity, Architecture, and Category.</li>
@@ -163,7 +168,7 @@
         <div id="distrodex-modal" class="hidden">
             <div class="modal-content distrodex-content">
                 <div class="distrodex-header">
-                    <h2>Distrodex — Linux Distribution Family Tree</h2>
+                    <h2>Distrodex — Linux & BSD Distribution Family Tree</h2>
                     <button id="close-distrodex-btn" class="btn btn-close">×</button>
                 </div>
 
@@ -177,6 +182,8 @@
                         <option value="Gaming">Gaming</option>
                         <option value="Security">Security</option>
                         <option value="Enterprise">Enterprise</option>
+                        <option value="Router">Router / Firewall</option>
+                        <option value="BSD">BSD</option>
                     </select>
 
                     <label class="distrodex-filter-checkbox">
@@ -215,6 +222,8 @@
                             <div><span class="legend-box cat-gaming"></span> Gaming</div>
                             <div><span class="legend-box cat-security"></span> Security</div>
                             <div><span class="legend-box cat-enterprise"></span> Enterprise</div>
+                            <div><span class="legend-box cat-router"></span> Router</div>
+                            <div><span class="legend-box cat-bsd"></span> BSD</div>
                         </div>
                     </div>
                     <div class="legend-section">

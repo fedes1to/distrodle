@@ -186,6 +186,16 @@ header p {
     padding: 0.25rem 0.4rem;
     border-radius: 2px;
     white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.option-item.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.option-item.disabled input[type="checkbox"] {
+    cursor: not-allowed;
 }
 
 .option-item input[type="checkbox"] {
@@ -1219,22 +1229,37 @@ footer {
 /* Category background colors */
 .cat-desktop {
     background: rgba(74, 158, 255, 0.15);
+    border-color: rgba(74, 158, 255, 0.5);
 }
 
 .cat-server {
     background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
 }
 
 .cat-gaming {
     background: rgba(250, 204, 21, 0.15);
+    border-color: rgba(250, 204, 21, 0.5);
 }
 
 .cat-security {
     background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
 }
 
 .cat-enterprise {
     background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.cat-router {
+    background: rgba(6, 182, 212, 0.18);
+    border-color: rgba(6, 182, 212, 0.5);
+}
+
+.cat-bsd {
+    background: rgba(244, 63, 94, 0.18);
+    border-color: rgba(244, 63, 94, 0.5);
 }
 
 /* Difficulty border colors */

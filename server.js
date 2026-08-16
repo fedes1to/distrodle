@@ -53,7 +53,7 @@ const VALID_DIFFICULTIES = Object.keys(DIFFICULTY_MIN_RANK);
 // Popularity selection weights for Hard/Extreme. Very Easy/Easy/Medium use uniform random.
 // Order: [Very High, High, Medium, Low, Very Low]
 // Roughly uniform, but skewed away from the popular end (Very High / High are
-// rare since there are only 3 / 14 distros in those buckets) and toward Medium /
+// rare since there are fewer distros in those buckets) and toward Medium /
 // Low / Very Low which gives more variety in the target.
 const DIFFICULTY_WEIGHTS = {
     'Hard':    [0.05, 0.10, 0.45, 0.40, 0.00],
@@ -71,9 +71,15 @@ function parseDifficultyOption(value) {
 function getFilteredDistros(options = {}) {
     const difficulty = parseDifficultyOption(options.difficulty);
     const includeDiscontinued = options.includeDiscontinued === true;
+    const includeBsd = options.includeBsd === 'all' || (options.includeBsd === true && difficulty === 'Extreme');
     const minRank = DIFFICULTY_MIN_RANK[difficulty];
 
     return distros.filter((distro) => {
+        // Exclude BSD distros unless Extreme mode with Include BSDs toggled, or explicitly included (e.g. Distrodex)
+        if (distro.isBsd && !includeBsd) {
+            return false;
+        }
+
         const rank = POPULARITY_RANK[distro.popularity];
         if (rank === undefined || rank < minRank) {
             return false;
@@ -91,7 +97,8 @@ function getFilteredDistros(options = {}) {
 app.get('/api/distros/full', (req, res) => {
     const filteredDistros = getFilteredDistros({
         difficulty: 'Extreme',
-        includeDiscontinued: true
+        includeDiscontinued: true,
+        includeBsd: 'all'
     });
 
     res.json(filteredDistros);
@@ -185,19 +192,10 @@ function getGameState(req) {
 app.get('/api/distros', (req, res) => {
     const difficulty = parseDifficultyOption(req.query.difficulty);
     const includeDiscontinued = parseBooleanOption(req.query.includeDiscontinued, false);
-    const filteredDistros = getFilteredDistros({ difficulty, includeDiscontinued });
+    const includeBsd = parseBooleanOption(req.query.includeBsd, false);
+    const filteredDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeBsd });
 
     res.json(filteredDistros.map(d => d.name));
-});
-
-// Get full distro data for Learn Mode (always everything)
-app.get('/api/distros/full', (req, res) => {
-    const filteredDistros = getFilteredDistros({
-        difficulty: 'Extreme',
-        includeDiscontinued: true
-    });
-
-    res.json(filteredDistros);
 });
 
 // Get random target distro
@@ -209,7 +207,8 @@ app.get('/api/target', (req, res) => {
 
     const difficulty = parseDifficultyOption(req.query.difficulty);
     const includeDiscontinued = parseBooleanOption(req.query.includeDiscontinued, false);
-    const availableDistros = getFilteredDistros({ difficulty, includeDiscontinued });
+    const includeBsd = parseBooleanOption(req.query.includeBsd, false);
+    const availableDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeBsd });
 
     if (availableDistros.length === 0) {
         return res.status(400).json({ error: 'No distros available for selected filters' });
