@@ -635,8 +635,57 @@ header p {
     color: var(--text-secondary);
 }
 
+.share-preview {
+    margin: 1rem auto 0.5rem auto;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-dark);
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    letter-spacing: 2px;
+    display: inline-block;
+    max-width: 100%;
+    user-select: text;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+.share-preview:empty {
+    display: none;
+}
+
+.victory-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.share-btn {
+    border-color: var(--correct);
+    color: var(--correct);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.share-btn:hover {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--correct);
+    color: var(--correct);
+}
+
+.share-btn.copied {
+    background: rgba(74, 222, 128, 0.25);
+    border-color: var(--correct);
+    color: var(--correct);
+}
+
 #play-again-btn {
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 footer {

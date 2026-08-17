@@ -61,9 +61,9 @@
                                 <input type="checkbox" id="toggle-discontinued" title="Include discontinued distros">
                                 Discontinued
                             </label>
-                            <label class="option-item" for="toggle-bsd" id="toggle-bsd-label">
-                                <input type="checkbox" id="toggle-bsd" title="Include BSD distributions (Extreme only)">
-                                Include BSDs
+                            <label class="option-item" for="toggle-non-linux" id="toggle-non-linux-label">
+                                <input type="checkbox" id="toggle-non-linux" title="Include Beyond Linux (Unix/BSD) distributions (Extreme only)">
+                                Beyond Linux
                             </label>
                         </div>
                         <div class="options-actions-col">
@@ -134,7 +134,13 @@
                 <p>You guessed the distro in</p>
                 <span id="guess-count">0</span>
                 <span class="tries-label">tries</span>
-                <button id="play-again-btn" class="btn">Play Again</button>
+                <div id="share-preview" class="share-preview"></div>
+                <div class="victory-actions">
+                    <button id="share-btn" class="btn share-btn" type="button">
+                        <span class="share-icon">📋</span> Share Results
+                    </button>
+                    <button id="play-again-btn" class="btn" type="button">Play Again</button>
+                </div>
             </div>
         </div>
 
@@ -150,7 +156,7 @@
                             <li><strong>Easy</strong> — adds Medium popularity.</li>
                             <li><strong>Medium</strong> — adds Low popularity. A noticeably bigger pool.</li>
                             <li><strong>Hard</strong> — also includes Low popularity, weighted towards less common distros. The default.</li>
-                            <li><strong>Extreme</strong> — the complete Linux catalog, including Very Low popularity, router OSes, and obscure distros. Use the <em>Include BSDs</em> toggle to add BSD distributions (FreeBSD, OpenBSD, NetBSD, GhostBSD, pfSense, etc.) into the pool.</li>
+                            <li><strong>Extreme</strong> — the complete Linux catalog, including Very Low popularity, router OSes, and obscure distros. Use the <em>Beyond Linux</em> toggle to add BSD and UNIX distributions (FreeBSD, OpenBSD, Solaris, Illumos, AIX, etc.) into the pool.</li>
                         </ul>
                     </li>
                     <li><strong>The 12 attributes:</strong> Distro name, Paid, Init system, Release model, Parent distro, Package manager, Difficulty, Year released, Desktop, Popularity, Architecture, and Category.</li>
