@@ -573,6 +573,7 @@ header p {
 }
 
 .modal-content {
+    position: relative;
     background: var(--bg-box);
     padding: 2rem;
     border: 2px solid var(--border-color);
@@ -582,6 +583,43 @@ header p {
     width: 90%;
     max-height: calc(100vh - 2rem);
     overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.solved-distro-banner {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--correct);
+    margin: -0.25rem auto 1rem auto;
+    padding: 0.4rem 0.8rem;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.solved-distro-banner:empty {
+    display: none;
 }
 
 .modal-content h2 {

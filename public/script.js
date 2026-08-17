@@ -42,6 +42,8 @@ const feedbackContainer = document.getElementById('feedback-container');
 const feedbackHeader = document.getElementById('feedback-header');
 const distroListElement = document.getElementById('distro-list');
 const victoryModal = document.getElementById('victory-modal');
+const closeVictoryBtn = document.getElementById('close-victory-btn');
+const solvedDistroBanner = document.getElementById('solved-distro-banner');
 const guessCountElement = document.getElementById('guess-count');
 const playAgainBtn = document.getElementById('play-again-btn');
 const shareBtn = document.getElementById('share-btn');
@@ -401,6 +403,9 @@ async function startNewGame() {
         if (sharePreview) {
             sharePreview.innerHTML = '';
         }
+        if (solvedDistroBanner) {
+            solvedDistroBanner.textContent = '';
+        }
         feedbackContainer.innerHTML = '';
         displayStats();
         updateDistroList();
@@ -571,7 +576,7 @@ async function handleGuess() {
                     recordWin();
                 }
                 gameWon = true;
-                setTimeout(() => showVictory(), 500);
+                setTimeout(() => showVictory(data.matchedName || matchedName), 500);
             }
             
             guessInput.value = '';
@@ -793,9 +798,15 @@ function showHint(hint) {
 }
 
 // Show victory modal
-function showVictory() {
+function showVictory(targetName) {
     const tries = guessedDistros.length || guessCount;
     guessCountElement.textContent = tries;
+    
+    if (solvedDistroBanner) {
+        const name = targetName || (guessedDistros.length > 0 ? guessedDistros[guessedDistros.length - 1] : '');
+        solvedDistroBanner.textContent = name ? `🐧 ${name}` : '';
+    }
+
     victoryModal.classList.remove('hidden');
     guessInput.disabled = true;
     guessBtn.disabled = true;
@@ -820,8 +831,10 @@ function showVictory() {
     }
     
     // Add typing effect to the victory message
-    const victoryTitle = document.querySelector('.modal-content h2');
-    typeWriterEffect(victoryTitle, 'Solved!', 100);
+    const victoryTitle = document.querySelector('#victory-modal h2');
+    if (victoryTitle) {
+        typeWriterEffect(victoryTitle, 'Solved!', 100);
+    }
 }
 
 // Generate shareable Wordle-style text summary
@@ -1560,6 +1573,12 @@ if (optionsToggleBtn) {
     optionsToggleBtn.addEventListener('click', toggleOptionsPanelCollapsed);
 }
 
+if (closeVictoryBtn) {
+    closeVictoryBtn.addEventListener('click', () => {
+        victoryModal.classList.add('hidden');
+    });
+}
+
 // Close modal when clicking outside
 victoryModal.addEventListener('click', (e) => {
     if (e.target === victoryModal) {
@@ -1584,6 +1603,7 @@ document.addEventListener('keypress', (e) => {
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+        victoryModal.classList.add('hidden');
         closeInstructionsModal();
         closeDistrodex();
     }
