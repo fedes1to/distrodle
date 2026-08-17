@@ -825,8 +825,8 @@ function showVictory(targetName) {
             incorrect: '🟥'
         };
         const previewHtml = guessHistory
-            .map(row => row.map(status => statusEmojiMap[status] || '🟥').join(''))
-            .join('<br>');
+            .map(row => `<div class="share-row">${row.map(status => `<span class="share-cell">${statusEmojiMap[status] || '🟥'}</span>`).join('')}</div>`)
+            .join('');
         sharePreview.innerHTML = previewHtml;
     }
     

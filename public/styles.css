@@ -685,16 +685,27 @@ header p {
     background: var(--bg-dark);
     border: 1px dashed var(--border-color);
     border-radius: 4px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    user-select: text;
+}
+
+.share-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
+.share-cell {
     font-size: 0.95rem;
     line-height: 1.4;
-    letter-spacing: 2px;
-    display: inline-block;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow-x: auto;
-    user-select: text;
-    max-height: 140px;
-    overflow-y: auto;
+}
+
+.share-cell + .share-cell {
+    margin-left: 4px;
 }
 
 .share-preview:empty {
