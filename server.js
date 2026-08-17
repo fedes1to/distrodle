@@ -71,12 +71,12 @@ function parseDifficultyOption(value) {
 function getFilteredDistros(options = {}) {
     const difficulty = parseDifficultyOption(options.difficulty);
     const includeDiscontinued = options.includeDiscontinued === true;
-    const includeBsd = options.includeBsd === 'all' || (options.includeBsd === true && difficulty === 'Extreme');
+    const includeNonLinux = options.includeNonLinux === 'all' || (options.includeNonLinux === true && difficulty === 'Extreme');
     const minRank = DIFFICULTY_MIN_RANK[difficulty];
 
     return distros.filter((distro) => {
-        // Exclude BSD distros unless Extreme mode with Include BSDs toggled, or explicitly included (e.g. Distrodex)
-        if (distro.isBsd && !includeBsd) {
+        // Exclude Non-Linux distros unless Extreme mode with Beyond Linux toggled, or explicitly included (e.g. Distrodex)
+        if ((distro.isBsd || distro.isUnix) && !includeNonLinux) {
             return false;
         }
 
@@ -98,7 +98,7 @@ app.get('/api/distros/full', (req, res) => {
     const filteredDistros = getFilteredDistros({
         difficulty: 'Extreme',
         includeDiscontinued: true,
-        includeBsd: 'all'
+        includeNonLinux: 'all'
     });
 
     res.json(filteredDistros);
@@ -192,9 +192,9 @@ function getGameState(req) {
 app.get('/api/distros', (req, res) => {
     const difficulty = parseDifficultyOption(req.query.difficulty);
     const includeDiscontinued = parseBooleanOption(req.query.includeDiscontinued, false);
-    const includeBsd = parseBooleanOption(req.query.includeBsd, false);
-    const filteredDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeBsd });
-
+    const includeNonLinux = parseBooleanOption(req.query.includeNonLinux, false);
+    
+    const filteredDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeNonLinux });
     res.json(filteredDistros.map(d => d.name));
 });
 
@@ -207,8 +207,8 @@ app.get('/api/target', (req, res) => {
 
     const difficulty = parseDifficultyOption(req.query.difficulty);
     const includeDiscontinued = parseBooleanOption(req.query.includeDiscontinued, false);
-    const includeBsd = parseBooleanOption(req.query.includeBsd, false);
-    const availableDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeBsd });
+    const includeNonLinux = parseBooleanOption(req.query.includeNonLinux, false);
+    const availableDistros = getFilteredDistros({ difficulty, includeDiscontinued, includeNonLinux });
 
     if (availableDistros.length === 0) {
         return res.status(400).json({ error: 'No distros available for selected filters' });

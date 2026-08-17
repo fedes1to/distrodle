@@ -4,6 +4,7 @@ let guessCount = 0;
 let gameWon = false;
 let distroList = [];
 let guessedDistros = [];
+let guessHistory = [];
 let isProcessing = false;
 let isInitialLoad = true;
 let gameStats = {
@@ -30,7 +31,7 @@ const DEFAULT_DIFFICULTY = 'Hard';
 let gameOptions = {
     difficulty: DEFAULT_DIFFICULTY,
     includeDiscontinued: false,
-    includeBsd: false
+    includeNonLinux: false
 };
 
 // DOM elements
@@ -43,10 +44,12 @@ const distroListElement = document.getElementById('distro-list');
 const victoryModal = document.getElementById('victory-modal');
 const guessCountElement = document.getElementById('guess-count');
 const playAgainBtn = document.getElementById('play-again-btn');
+const shareBtn = document.getElementById('share-btn');
+const sharePreview = document.getElementById('share-preview');
 const firstGuessHelp = document.getElementById('first-guess-help');
 const toggleDiscontinued = document.getElementById('toggle-discontinued');
-const toggleBsd = document.getElementById('toggle-bsd');
-const toggleBsdLabel = document.getElementById('toggle-bsd-label');
+const toggleNonLinux = document.getElementById('toggle-non-linux');
+const toggleNonLinuxLabel = document.getElementById('toggle-non-linux-label');
 const difficultySelect = document.getElementById('difficulty-select');
 const howToPlayBtn = document.getElementById('how-to-play-btn');
 const instructionsModal = document.getElementById('instructions-modal');
@@ -57,17 +60,17 @@ const optionsToggleBtn = document.getElementById('options-toggle-btn');
 const OPTIONS_PANEL_COLLAPSED_KEY = 'distrodleOptionsPanelCollapsed';
 
 function getOptionQuery() {
-    return `difficulty=${encodeURIComponent(gameOptions.difficulty)}&includeDiscontinued=${gameOptions.includeDiscontinued}&includeBsd=${gameOptions.includeBsd}`;
+    return `difficulty=${encodeURIComponent(gameOptions.difficulty)}&includeDiscontinued=${gameOptions.includeDiscontinued}&includeNonLinux=${gameOptions.includeNonLinux}`;
 }
 
 function applyOptionConstraints() {
     const isExtreme = gameOptions.difficulty === 'Extreme';
-    if (toggleBsd) {
-        toggleBsd.disabled = !isExtreme;
+    if (toggleNonLinux) {
+        toggleNonLinux.disabled = !isExtreme;
     }
-    if (toggleBsdLabel) {
-        toggleBsdLabel.classList.toggle('disabled', !isExtreme);
-        toggleBsdLabel.title = isExtreme ? 'Include BSD distributions in Extreme mode' : 'Available in Extreme difficulty only';
+    if (toggleNonLinuxLabel) {
+        toggleNonLinuxLabel.classList.toggle('disabled', !isExtreme);
+        toggleNonLinuxLabel.title = isExtreme ? 'Include Beyond Linux (Unix/BSD) distributions in Extreme mode' : 'Available in Extreme difficulty only';
     }
 }
 
@@ -129,8 +132,8 @@ function loadOptions() {
         if (parsed && typeof parsed.includeDiscontinued === 'boolean') {
             gameOptions.includeDiscontinued = parsed.includeDiscontinued;
         }
-        if (parsed && typeof parsed.includeBsd === 'boolean') {
-            gameOptions.includeBsd = parsed.includeBsd;
+        if (parsed && typeof parsed.includeNonLinux === 'boolean') {
+            gameOptions.includeNonLinux = parsed.includeNonLinux;
         }
         applyOptionConstraints();
     } catch (error) {
@@ -188,8 +191,8 @@ function renderOptions() {
     if (toggleDiscontinued) {
         toggleDiscontinued.checked = gameOptions.includeDiscontinued;
     }
-    if (toggleBsd) {
-        toggleBsd.checked = gameOptions.includeBsd;
+    if (toggleNonLinux) {
+        toggleNonLinux.checked = gameOptions.includeNonLinux;
     }
     applyOptionConstraints();
 }
@@ -394,6 +397,10 @@ async function startNewGame() {
         gameWon = false;
         hasGuessedThisRound = false;
         guessedDistros = [];
+        guessHistory = [];
+        if (sharePreview) {
+            sharePreview.innerHTML = '';
+        }
         feedbackContainer.innerHTML = '';
         displayStats();
         updateDistroList();
@@ -774,6 +781,10 @@ function displayFeedback(feedback, matchedName) {
     
     // Add row to container (at the top)
     feedbackContainer.insertBefore(row, feedbackContainer.firstChild);
+
+    // Save attribute statuses for shareable emoji grid
+    const rowFeedback = attributes.map(attr => feedback[attr.key]?.status || 'incorrect');
+    guessHistory.push(rowFeedback);
 }
 
 // Show hint when 5, 10, 15... misses
@@ -795,9 +806,98 @@ function showVictory() {
     // Create confetti explosion
     createConfetti();
     
+    // Render emoji preview in victory modal
+    if (sharePreview) {
+        const statusEmojiMap = {
+            correct: '🟩',
+            partial: '🟨',
+            incorrect: '🟥'
+        };
+        const previewHtml = guessHistory
+            .map(row => row.map(status => statusEmojiMap[status] || '🟥').join(''))
+            .join('<br>');
+        sharePreview.innerHTML = previewHtml;
+    }
+    
     // Add typing effect to the victory message
     const victoryTitle = document.querySelector('.modal-content h2');
     typeWriterEffect(victoryTitle, 'Solved!', 100);
+}
+
+// Generate shareable Wordle-style text summary
+function generateShareText() {
+    const statusEmojiMap = {
+        correct: '🟩',
+        partial: '🟨',
+        incorrect: '🟥'
+    };
+
+    let optionsText = gameOptions.difficulty;
+    const extras = [];
+    if (gameOptions.includeDiscontinued) extras.push('Discontinued');
+    if (gameOptions.includeNonLinux) extras.push('Beyond Linux');
+    if (extras.length > 0) {
+        optionsText += ` (${extras.join(', ')})`;
+    }
+
+    const tries = guessedDistros.length || guessCount || 1;
+    const triesLabel = tries === 1 ? '1 try' : `${tries} tries`;
+
+    const grid = guessHistory
+        .map(row => row.map(status => statusEmojiMap[status] || '🟥').join(''))
+        .join('\n');
+
+    const url = window.location.origin && window.location.origin.startsWith('http')
+        ? window.location.origin
+        : 'https://distro.fedesito.me';
+
+    return `Distrodle 🐧 ${optionsText} — ${triesLabel}\n\n${grid}\n\n${url}`;
+}
+
+// Copy results to clipboard with fallback
+async function copyShareText() {
+    const text = generateShareText();
+    let copied = false;
+
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+        } else {
+            throw new Error('Clipboard API unavailable');
+        }
+    } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            copied = document.execCommand('copy');
+        } catch (copyErr) {
+            console.error('Fallback copy failed:', copyErr);
+        }
+        document.body.removeChild(textArea);
+    }
+
+    if (copied) {
+        playSound('correct');
+        showToast('📋 Copied results to clipboard!', 'info');
+        if (shareBtn) {
+            const originalHTML = shareBtn.innerHTML;
+            shareBtn.innerHTML = '<span class="share-icon">✅</span> Copied!';
+            shareBtn.classList.add('copied');
+            setTimeout(() => {
+                shareBtn.innerHTML = originalHTML;
+                shareBtn.classList.remove('copied');
+            }, 2000);
+        }
+    } else {
+        showToast('Could not copy to clipboard automatically.', 'error');
+    }
 }
 
 function openInstructionsModal() {
@@ -1410,9 +1510,9 @@ if (toggleDiscontinued) {
     });
 }
 
-if (toggleBsd) {
-    toggleBsd.addEventListener('change', async () => {
-        gameOptions.includeBsd = toggleBsd.checked;
+if (toggleNonLinux) {
+    toggleNonLinux.addEventListener('change', async () => {
+        gameOptions.includeNonLinux = toggleNonLinux.checked;
         applyOptionConstraints();
         saveOptions();
         renderOptions();
@@ -1429,6 +1529,10 @@ if (difficultySelect) {
 newGameBtn.addEventListener('click', startNewGame);
 
 playAgainBtn.addEventListener('click', startNewGame);
+
+if (shareBtn) {
+    shareBtn.addEventListener('click', copyShareText);
+}
 
 if (howToPlayBtn) {
     howToPlayBtn.addEventListener('click', toggleInstructionsModal);
