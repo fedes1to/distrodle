@@ -93,15 +93,198 @@ function getFilteredDistros(options = {}) {
     });
 }
 
-// Get full distro data for the Distrodex (always includes everything).
-app.get('/api/distros/full', (req, res) => {
-    const filteredDistros = getFilteredDistros({
+function filterDistrosWithCriteria(distroList, query = {}) {
+    let result = distroList;
+
+    // Discontinued filter
+    if (query.discontinued !== undefined && query.discontinued !== 'all') {
+        const disc = query.discontinued.toString().toLowerCase().trim();
+        if (disc === 'yes' || disc === 'true' || disc === '1' || disc === 'discontinued') {
+            result = result.filter(d => d.discontinued === 'Yes');
+        } else if (disc === 'no' || disc === 'false' || disc === '0' || disc === 'active') {
+            result = result.filter(d => d.discontinued !== 'Yes');
+        }
+    }
+
+    // Paid filter
+    if (query.paid !== undefined && query.paid !== 'all') {
+        const paidStr = query.paid.toString().toLowerCase().trim();
+        if (paidStr === 'true' || paidStr === 'yes' || paidStr === '1' || paidStr === 'paid') {
+            result = result.filter(d => d.paid === true);
+        } else if (paidStr === 'false' || paidStr === 'no' || paidStr === '0' || paidStr === 'free') {
+            result = result.filter(d => !d.paid);
+        }
+    }
+
+    // Category filter
+    if (query.category && query.category !== 'all') {
+        const catFilter = query.category.toLowerCase().trim();
+        result = result.filter(d => {
+            const nodeCat = (d.category || '').toLowerCase();
+            if (catFilter === 'bsd') {
+                return nodeCat.includes('bsd') || d.isBsd;
+            }
+            if (catFilter === 'router') {
+                return nodeCat.includes('router') || nodeCat.includes('firewall');
+            }
+            return nodeCat.includes(catFilter);
+        });
+    }
+
+    // Parent distro filter
+    if (query.parent && query.parent !== 'all') {
+        const parentFilter = query.parent.toLowerCase().trim();
+        result = result.filter(d => {
+            const p = (d.parentDistro || '').toLowerCase();
+            return p.includes(parentFilter);
+        });
+    }
+
+    // Difficulty filter
+    if (query.difficulty && query.difficulty !== 'all') {
+        const diffFilter = query.difficulty.toLowerCase().trim();
+        result = result.filter(d => (d.difficulty || '').toLowerCase() === diffFilter);
+    }
+
+    // Package manager filter
+    if (query.packageManager && query.packageManager !== 'all') {
+        const pkgFilter = query.packageManager.toLowerCase().trim();
+        result = result.filter(d => (d.packageManager || '').toLowerCase().includes(pkgFilter));
+    }
+
+    // Init system filter
+    if (query.initSystem && query.initSystem !== 'all') {
+        const initFilter = query.initSystem.toLowerCase().trim();
+        result = result.filter(d => (d.initSystem || '').toLowerCase().includes(initFilter));
+    }
+
+    // Desktop environment filter
+    if ((query.desktopEnvironment || query.desktop) && (query.desktopEnvironment || query.desktop) !== 'all') {
+        const deskFilter = (query.desktopEnvironment || query.desktop).toLowerCase().trim();
+        result = result.filter(d => (d.desktopEnvironment || '').toLowerCase().includes(deskFilter));
+    }
+
+    // Release type filter
+    if (query.releaseType && query.releaseType !== 'all') {
+        const relFilter = query.releaseType.toLowerCase().trim();
+        result = result.filter(d => (d.releaseType || '').toLowerCase().includes(relFilter));
+    }
+
+    // Popularity filter
+    if (query.popularity && query.popularity !== 'all') {
+        const popFilter = query.popularity.toLowerCase().trim();
+        result = result.filter(d => (d.popularity || '').toLowerCase() === popFilter);
+    }
+
+    // Architecture filter
+    if ((query.architecture || query.arch) && (query.architecture || query.arch) !== 'all') {
+        const archFilter = (query.architecture || query.arch).toLowerCase().trim();
+        result = result.filter(d => (d.architecture || '').toLowerCase().includes(archFilter));
+    }
+
+    // Non-Linux / OS Family filter
+    if (query.ecosystem && query.ecosystem !== 'all') {
+        const eco = query.ecosystem.toLowerCase().trim();
+        if (eco === 'linux') {
+            result = result.filter(d => !d.isBsd && !d.isUnix);
+        } else if (eco === 'bsd') {
+            result = result.filter(d => d.isBsd);
+        } else if (eco === 'unix' || eco === 'beyond-linux') {
+            result = result.filter(d => d.isBsd || d.isUnix);
+        }
+    }
+
+    // Free text search (supports query prefixes like pkg:pacman, init:systemd, cat:gaming, year:2004)
+    const searchQuery = (query.q || query.search || '').trim();
+    if (searchQuery) {
+        const terms = searchQuery.split(/\s+/).filter(Boolean);
+        result = result.filter(d => {
+            return terms.every(term => {
+                const lowerTerm = term.toLowerCase();
+                if (lowerTerm.includes(':')) {
+                    const [key, ...valParts] = lowerTerm.split(':');
+                    const val = valParts.join(':').trim();
+                    if (!val) return true;
+
+                    switch (key) {
+                        case 'name':
+                            return (d.name || '').toLowerCase().includes(val);
+                        case 'cat':
+                        case 'category':
+                            return (d.category || '').toLowerCase().includes(val);
+                        case 'parent':
+                        case 'base':
+                            return (d.parentDistro || '').toLowerCase().includes(val);
+                        case 'pkg':
+                        case 'package':
+                        case 'packagemanager':
+                            return (d.packageManager || '').toLowerCase().includes(val);
+                        case 'init':
+                        case 'initsystem':
+                            return (d.initSystem || '').toLowerCase().includes(val);
+                        case 'desk':
+                        case 'desktop':
+                            return (d.desktopEnvironment || '').toLowerCase().includes(val);
+                        case 'arch':
+                        case 'architecture':
+                            return (d.architecture || '').toLowerCase().includes(val);
+                        case 'year':
+                            return String(d.yearReleased || '').includes(val);
+                        case 'diff':
+                        case 'difficulty':
+                            return (d.difficulty || '').toLowerCase().includes(val);
+                        case 'pop':
+                        case 'popularity':
+                            return (d.popularity || '').toLowerCase().includes(val);
+                        case 'release':
+                        case 'releasetype':
+                            return (d.releaseType || '').toLowerCase().includes(val);
+                        case 'paid':
+                            return val === 'yes' || val === 'true' ? d.paid : !d.paid;
+                        case 'status':
+                            return val === 'active' ? d.discontinued !== 'Yes' : d.discontinued === 'Yes';
+                        default:
+                            break;
+                    }
+                }
+
+                // General match across all attributes
+                const searchable = [
+                    d.name,
+                    d.parentDistro,
+                    d.category,
+                    d.packageManager,
+                    d.initSystem,
+                    d.desktopEnvironment,
+                    d.architecture,
+                    d.releaseType,
+                    d.popularity,
+                    d.difficulty,
+                    String(d.yearReleased || ''),
+                    d.paid ? 'paid commercial' : 'free',
+                    d.discontinued === 'Yes' ? 'discontinued' : 'active',
+                    d.isBsd ? 'bsd' : '',
+                    d.isUnix ? 'unix' : ''
+                ].join(' ').toLowerCase();
+
+                return searchable.includes(lowerTerm);
+            });
+        });
+    }
+
+    return result;
+}
+
+// Get distro data for the Distrodex (supports search and multi-attribute filters via query params).
+app.get(['/api/distros/full', '/api/distros/search'], (req, res) => {
+    const allDistros = getFilteredDistros({
         difficulty: 'Extreme',
         includeDiscontinued: true,
         includeNonLinux: 'all'
     });
 
-    res.json(filteredDistros);
+    const filtered = filterDistrosWithCriteria(allDistros, req.query);
+    res.json(filtered);
 });
 
 // Pick a random distro from the pool using difficulty-specific selection rules.

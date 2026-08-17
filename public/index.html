@@ -176,41 +176,245 @@
         <div id="distrodex-modal" class="hidden">
             <div class="modal-content distrodex-content">
                 <div class="distrodex-header">
-                    <h2>Distrodex — Linux & BSD Distribution Family Tree</h2>
-                    <button id="close-distrodex-btn" class="btn btn-close">×</button>
-                </div>
-
-                <div class="distrodex-filters">
-                    <input type="text" id="distrodex-search" placeholder="Search distros..." autocomplete="off">
-
-                    <select id="distrodex-category-filter">
-                        <option value="all">All Categories</option>
-                        <option value="Desktop">Desktop</option>
-                        <option value="Server">Server</option>
-                        <option value="Gaming">Gaming</option>
-                        <option value="Security">Security</option>
-                        <option value="Enterprise">Enterprise</option>
-                        <option value="Router">Router / Firewall</option>
-                        <option value="BSD">BSD</option>
-                    </select>
-
-                    <label class="distrodex-filter-checkbox">
-                        <input type="checkbox" id="distrodex-paid-only">
-                        Paid Only
-                    </label>
-
-                    <label class="distrodex-filter-checkbox">
-                        <input type="checkbox" id="distrodex-active-only" checked>
-                        Active Only
-                    </label>
-
-                    <div class="distrodex-expand-controls">
-                        <button id="distrodex-expand-all" class="btn btn-small">Expand All</button>
-                        <button id="distrodex-collapse-all" class="btn btn-small">Collapse All</button>
+                    <div class="distrodex-title-group">
+                        <h2>Distrodex — Linux & BSD Catalog & Family Tree</h2>
+                        <span id="distrodex-results-count" class="distrodex-results-count">Loading...</span>
+                    </div>
+                    <div class="distrodex-header-actions">
+                        <div class="distrodex-view-toggle">
+                            <button id="distrodex-view-tree-btn" class="btn btn-view active" title="Tree View">├─ Tree</button>
+                            <button id="distrodex-view-list-btn" class="btn btn-view" title="List / Cards View">☰ Cards</button>
+                        </div>
+                        <button id="close-distrodex-btn" class="btn btn-close" aria-label="Close Distrodex">×</button>
                     </div>
                 </div>
 
+                <!-- Search and Action Bar -->
+                <div class="distrodex-search-bar">
+                    <div class="distrodex-search-wrapper">
+                        <span class="search-prompt">$</span>
+                        <input 
+                            type="text" 
+                            id="distrodex-search" 
+                            placeholder="Search name, desktop, pkg, init, arch, or 'pkg:pacman' 'cat:gaming' 'year:2004'..." 
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <button id="distrodex-search-clear" class="distrodex-search-clear hidden" title="Clear search">×</button>
+                    </div>
+                    <div class="distrodex-search-actions">
+                        <button id="distrodex-advanced-toggle-btn" class="btn btn-small" type="button">
+                            <span class="adv-icon">⚙</span> Filters <span id="distrodex-active-filter-badge" class="filter-count-badge hidden">0</span>
+                        </button>
+                        <button id="distrodex-reset-filters-btn" class="btn btn-small btn-reset hidden" type="button">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Primary Filters Row -->
+                <div class="distrodex-filters-primary">
+                    <div class="filter-group">
+                        <label for="distrodex-category-filter">Category:</label>
+                        <select id="distrodex-category-filter">
+                            <option value="all">All Categories</option>
+                            <option value="Desktop">Desktop</option>
+                            <option value="Server">Server</option>
+                            <option value="Gaming">Gaming</option>
+                            <option value="Security">Security / Forensics</option>
+                            <option value="Enterprise">Enterprise</option>
+                            <option value="Router">Router / Firewall</option>
+                            <option value="Minimal">Minimal / Embedded</option>
+                            <option value="Privacy">Privacy</option>
+                            <option value="Container">Container</option>
+                            <option value="Source-based">Source-based</option>
+                            <option value="Mobile">Mobile</option>
+                            <option value="Recovery">Live / Recovery</option>
+                            <option value="Multimedia">Multimedia</option>
+                            <option value="Scientific">Scientific</option>
+                            <option value="BSD">BSD</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-parent-filter">Base / Family:</label>
+                        <select id="distrodex-parent-filter">
+                            <option value="all">All Bases</option>
+                            <option value="Independent">Independent (Roots)</option>
+                            <option value="Debian">Debian</option>
+                            <option value="Ubuntu">Ubuntu</option>
+                            <option value="Arch Linux">Arch Linux</option>
+                            <option value="Fedora">Fedora / Red Hat</option>
+                            <option value="openSUSE">openSUSE / SUSE</option>
+                            <option value="Slackware">Slackware</option>
+                            <option value="Gentoo">Gentoo</option>
+                            <option value="Alpine Linux">Alpine Linux</option>
+                            <option value="Mandriva">Mandriva</option>
+                            <option value="FreeBSD">FreeBSD</option>
+                            <option value="OpenBSD">OpenBSD</option>
+                            <option value="NetBSD">NetBSD</option>
+                            <option value="Solaris">Solaris / SunOS / Illumos</option>
+                            <option value="UNIX System V">UNIX System V</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-difficulty-filter">Difficulty:</label>
+                        <select id="distrodex-difficulty-filter">
+                            <option value="all">All Difficulties</option>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Expert">Expert</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-status-filter">Status:</label>
+                        <select id="distrodex-status-filter">
+                            <option value="active" selected>Active Only</option>
+                            <option value="discontinued">Discontinued Only</option>
+                            <option value="all">All (Active & Discontinued)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-paid-filter">Pricing:</label>
+                        <select id="distrodex-paid-filter">
+                            <option value="all">All Pricing</option>
+                            <option value="free">Free Only</option>
+                            <option value="paid">Commercial / Paid</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Advanced Collapsible Filters Panel -->
+                <div id="distrodex-advanced-filters" class="distrodex-filters-advanced hidden">
+                    <div class="filter-group">
+                        <label for="distrodex-pkg-filter">Package Manager:</label>
+                        <select id="distrodex-pkg-filter">
+                            <option value="all">All Package Managers</option>
+                            <option value="APT">APT (dpkg)</option>
+                            <option value="Pacman">Pacman</option>
+                            <option value="DNF">DNF / RPM</option>
+                            <option value="Portage">Portage (emerge)</option>
+                            <option value="APK">APK (Alpine)</option>
+                            <option value="XBPS">XBPS (Void)</option>
+                            <option value="ZYpp">ZYpp (zypper)</option>
+                            <option value="Nix">Nix</option>
+                            <option value="Guix">Guix</option>
+                            <option value="pkg">pkg / BSD</option>
+                            <option value="pkgtools">pkgtools (Slackware)</option>
+                            <option value="eopkg">eopkg (Solus)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-init-filter">Init System:</label>
+                        <select id="distrodex-init-filter">
+                            <option value="all">All Init Systems</option>
+                            <option value="systemd">systemd</option>
+                            <option value="OpenRC">OpenRC</option>
+                            <option value="runit">runit</option>
+                            <option value="sysvinit">SysVinit</option>
+                            <option value="BSD-style">BSD-style init</option>
+                            <option value="dinit">dinit</option>
+                            <option value="BusyBox init">BusyBox init</option>
+                            <option value="Shepherd">Shepherd</option>
+                            <option value="SMF">SMF</option>
+                            <option value="launchd">launchd</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-desktop-filter">Desktop / UI:</label>
+                        <select id="distrodex-desktop-filter">
+                            <option value="all">All Desktops</option>
+                            <option value="GNOME">GNOME</option>
+                            <option value="KDE">KDE Plasma</option>
+                            <option value="XFCE">XFCE</option>
+                            <option value="Cinnamon">Cinnamon</option>
+                            <option value="MATE">MATE</option>
+                            <option value="LXQt">LXQt / LXDE</option>
+                            <option value="Pantheon">Pantheon</option>
+                            <option value="COSMIC">COSMIC</option>
+                            <option value="Budgie">Budgie</option>
+                            <option value="i3">i3 / Tiling WM</option>
+                            <option value="None">None / Headless</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-release-filter">Release Model:</label>
+                        <select id="distrodex-release-filter">
+                            <option value="all">All Release Models</option>
+                            <option value="Stable">Stable / Point</option>
+                            <option value="Rolling">Rolling Release</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-popularity-filter">Popularity:</label>
+                        <select id="distrodex-popularity-filter">
+                            <option value="all">All Popularity</option>
+                            <option value="Very High">Very High</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                            <option value="Very Low">Very Low</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-arch-filter">Architecture:</label>
+                        <select id="distrodex-arch-filter">
+                            <option value="all">All Architectures</option>
+                            <option value="x86_64">x86_64 (64-bit AMD/Intel)</option>
+                            <option value="ARM">ARM / aarch64</option>
+                            <option value="RISC-V">RISC-V</option>
+                            <option value="x86">x86 / i386 / i686 (32-bit)</option>
+                            <option value="MIPS">MIPS</option>
+                            <option value="Power">PowerPC / IBM POWER</option>
+                            <option value="IBM Z">IBM Z / s390x</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="distrodex-ecosystem-filter">OS Family:</label>
+                        <select id="distrodex-ecosystem-filter">
+                            <option value="all">All Ecosystems</option>
+                            <option value="linux">Linux Only</option>
+                            <option value="bsd">BSD Family</option>
+                            <option value="beyond-linux">Beyond Linux (BSD & UNIX)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Secondary Action Controls (Tree / List specific) -->
+                <div class="distrodex-toolbar">
+                    <div id="distrodex-tree-controls" class="distrodex-tree-controls">
+                        <button id="distrodex-expand-all" class="btn btn-small">Expand All</button>
+                        <button id="distrodex-collapse-all" class="btn btn-small">Collapse All</button>
+                    </div>
+
+                    <div id="distrodex-list-controls" class="distrodex-list-controls hidden">
+                        <label for="distrodex-sort-select">Sort by:</label>
+                        <select id="distrodex-sort-select">
+                            <option value="name-asc">Name (A → Z)</option>
+                            <option value="name-desc">Name (Z → A)</option>
+                            <option value="year-desc">Year (Newest First)</option>
+                            <option value="year-asc">Year (Oldest First)</option>
+                            <option value="popularity-desc">Popularity (Highest First)</option>
+                            <option value="difficulty-asc">Difficulty (Beginner → Expert)</option>
+                        </select>
+                    </div>
+
+                    <div id="distrodex-active-tags" class="distrodex-active-tags"></div>
+                </div>
+
+                <!-- Main View Containers -->
                 <div id="distrodex-tree-container" class="distrodex-tree-container"></div>
+                <div id="distrodex-list-container" class="distrodex-list-container hidden"></div>
 
                 <div class="distrodex-legend">
                     <div class="legend-section">

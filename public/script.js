@@ -946,30 +946,71 @@ function toggleInstructionsModal() {
     }
 }
 
-// Distrodex (family tree of every distro in the game)
+// Distrodex (Interactive catalog & family tree of every distro)
 let distrodexTree = null;
 let distrodexDistros = null;
-let distrodexFilters = {
+let distrodexViewMode = 'tree'; // 'tree' or 'list'
+let distrodexSortBy = 'name-asc';
+
+const DEFAULT_DISTRODEX_FILTERS = {
     search: '',
     category: 'all',
-    paidOnly: false,
-    activeOnly: true
+    parent: 'all',
+    difficulty: 'all',
+    status: 'active', // 'active', 'discontinued', 'all'
+    paid: 'all',      // 'all', 'free', 'paid'
+    packageManager: 'all',
+    initSystem: 'all',
+    desktop: 'all',
+    releaseType: 'all',
+    popularity: 'all',
+    architecture: 'all',
+    ecosystem: 'all'
 };
+
+let distrodexFilters = { ...DEFAULT_DISTRODEX_FILTERS };
 let distrodexSearchDebounceTimer = null;
 
+// DOM elements
 const distrodexModal = document.getElementById('distrodex-modal');
 const distrodexBtn = document.getElementById('distrodex-btn');
 const closeDistrodexBtn = document.getElementById('close-distrodex-btn');
 const distrodexTreeContainer = document.getElementById('distrodex-tree-container');
+const distrodexListContainer = document.getElementById('distrodex-list-container');
+const distrodexTreeControls = document.getElementById('distrodex-tree-controls');
+const distrodexListControls = document.getElementById('distrodex-list-controls');
+const distrodexViewTreeBtn = document.getElementById('distrodex-view-tree-btn');
+const distrodexViewListBtn = document.getElementById('distrodex-view-list-btn');
+const distrodexResultsCount = document.getElementById('distrodex-results-count');
+const distrodexResetFiltersBtn = document.getElementById('distrodex-reset-filters-btn');
+const distrodexActiveFilterBadge = document.getElementById('distrodex-active-filter-badge');
+const distrodexActiveTagsContainer = document.getElementById('distrodex-active-tags');
+
+// Search & filter inputs
 const distrodexSearchInput = document.getElementById('distrodex-search');
+const distrodexSearchClearBtn = document.getElementById('distrodex-search-clear');
+const distrodexAdvToggleBtn = document.getElementById('distrodex-advanced-toggle-btn');
+const distrodexAdvFiltersPanel = document.getElementById('distrodex-advanced-filters');
+
 const distrodexCategoryFilter = document.getElementById('distrodex-category-filter');
-const distrodexPaidOnlyCheckbox = document.getElementById('distrodex-paid-only');
-const distrodexActiveOnlyCheckbox = document.getElementById('distrodex-active-only');
+const distrodexParentFilter = document.getElementById('distrodex-parent-filter');
+const distrodexDifficultyFilter = document.getElementById('distrodex-difficulty-filter');
+const distrodexStatusFilter = document.getElementById('distrodex-status-filter');
+const distrodexPaidFilter = document.getElementById('distrodex-paid-filter');
+
+const distrodexPkgFilter = document.getElementById('distrodex-pkg-filter');
+const distrodexInitFilter = document.getElementById('distrodex-init-filter');
+const distrodexDesktopFilter = document.getElementById('distrodex-desktop-filter');
+const distrodexReleaseFilter = document.getElementById('distrodex-release-filter');
+const distrodexPopularityFilter = document.getElementById('distrodex-popularity-filter');
+const distrodexArchFilter = document.getElementById('distrodex-arch-filter');
+const distrodexEcosystemFilter = document.getElementById('distrodex-ecosystem-filter');
+const distrodexSortSelect = document.getElementById('distrodex-sort-select');
+
 const distrodexExpandAllBtn = document.getElementById('distrodex-expand-all');
 const distrodexCollapseAllBtn = document.getElementById('distrodex-collapse-all');
 
 function buildDistroTree(distros) {
-    // Create a map of all distros
     const distroMap = new Map();
 
     distros.forEach(distro => {
@@ -980,7 +1021,7 @@ function buildDistroTree(distros) {
         });
     });
 
-    // Handle special case: Mageia references "Mandriva" but the name is "Mandriva Linux"
+    // Handle parent-child relationships
     distros.forEach(distro => {
         const node = distroMap.get(distro.name);
         let parentName = distro.parentDistro;
@@ -995,12 +1036,11 @@ function buildDistroTree(distros) {
         }
     });
 
-    // Get root nodes (independent distros) and sort by year
+    // Root nodes (independent distros) sorted by year
     const roots = Array.from(distroMap.values())
         .filter(d => d.parentDistro === 'Independent')
-        .sort((a, b) => a.yearReleased - b.yearReleased);
+        .sort((a, b) => (a.yearReleased || 0) - (b.yearReleased || 0));
 
-    // Sort children alphabetically for each node
     function sortChildren(node) {
         if (node.children.length > 0) {
             node.children.sort((a, b) => a.name.localeCompare(b.name));
@@ -1009,7 +1049,6 @@ function buildDistroTree(distros) {
     }
 
     roots.forEach(sortChildren);
-
     return roots;
 }
 
@@ -1018,7 +1057,7 @@ function getCategoryClass(category) {
     if (categories.includes('bsd')) return 'cat-bsd';
     if (categories.includes('router') || categories.includes('firewall')) return 'cat-router';
     if (categories.includes('gaming')) return 'cat-gaming';
-    if (categories.includes('security') || categories.includes('penetration')) return 'cat-security';
+    if (categories.includes('security') || categories.includes('penetration') || categories.includes('forensics')) return 'cat-security';
     if (categories.includes('enterprise')) return 'cat-enterprise';
     if (categories.includes('server')) return 'cat-server';
     if (categories.includes('desktop')) return 'cat-desktop';
@@ -1026,7 +1065,7 @@ function getCategoryClass(category) {
 }
 
 function getDifficultyClass(difficulty) {
-    const diff = difficulty.toLowerCase();
+    const diff = (difficulty || '').toLowerCase();
     if (diff === 'beginner') return 'diff-beginner';
     if (diff === 'intermediate') return 'diff-intermediate';
     if (diff === 'advanced') return 'diff-advanced';
@@ -1036,30 +1075,63 @@ function getDifficultyClass(difficulty) {
 
 function getNodeSymbols(node) {
     let symbols = [];
-
     if (node.parentDistro === 'Independent') {
-        symbols.push('◆');
+        symbols.push('<span class="symbol" title="Independent / Root">◆</span>');
     }
     if (node.paid) {
-        symbols.push('$');
+        symbols.push('<span class="symbol symbol-paid" title="Commercial / Paid">$</span>');
     }
     if (node.category && node.category.toLowerCase().includes('gaming')) {
-        symbols.push('★');
+        symbols.push('<span class="symbol symbol-gaming" title="Gaming Distribution">★</span>');
     }
     if (node.discontinued === 'Yes') {
-        symbols.push('⚠');
+        symbols.push('<span class="symbol symbol-discontinued" title="Discontinued">⚠</span>');
     }
-
     return symbols.join(' ');
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm || !text) return escapeHtml(text);
+    const escapedText = escapeHtml(text);
+    // If searchTerm contains field prefix (e.g. pkg:pacman), extract the value part for highlighting
+    let query = searchTerm.trim();
+    if (query.includes(':')) {
+        const parts = query.split(':');
+        query = parts[parts.length - 1].trim();
+    }
+    if (!query) return escapedText;
+
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
 function distrodexMatchesFilters(node) {
-    // Search filter
-    if (distrodexFilters.search) {
-        const searchLower = distrodexFilters.search.toLowerCase();
-        if (!node.name.toLowerCase().includes(searchLower)) {
-            return false;
-        }
+    if (!node) return false;
+
+    // Discontinued / Status filter
+    if (distrodexFilters.status === 'active' && node.discontinued === 'Yes') {
+        return false;
+    }
+    if (distrodexFilters.status === 'discontinued' && node.discontinued !== 'Yes') {
+        return false;
+    }
+
+    // Pricing filter
+    if (distrodexFilters.paid === 'free' && node.paid) {
+        return false;
+    }
+    if (distrodexFilters.paid === 'paid' && !node.paid) {
+        return false;
     }
 
     // Category filter
@@ -1075,14 +1147,155 @@ function distrodexMatchesFilters(node) {
         }
     }
 
-    // Paid filter
-    if (distrodexFilters.paidOnly && !node.paid) {
-        return false;
+    // Parent distro filter
+    if (distrodexFilters.parent !== 'all') {
+        const parentFilter = distrodexFilters.parent.toLowerCase();
+        const nodeParent = (node.parentDistro || '').toLowerCase();
+        if (distrodexFilters.parent === 'Independent') {
+            if (node.parentDistro !== 'Independent') return false;
+        } else if (!nodeParent.includes(parentFilter)) {
+            return false;
+        }
     }
 
-    // Active filter
-    if (distrodexFilters.activeOnly && node.discontinued === 'Yes') {
-        return false;
+    // Difficulty filter
+    if (distrodexFilters.difficulty !== 'all') {
+        if ((node.difficulty || '').toLowerCase() !== distrodexFilters.difficulty.toLowerCase()) {
+            return false;
+        }
+    }
+
+    // Package manager filter
+    if (distrodexFilters.packageManager !== 'all') {
+        const pkgFilter = distrodexFilters.packageManager.toLowerCase();
+        const nodePkg = (node.packageManager || '').toLowerCase();
+        if (!nodePkg.includes(pkgFilter)) return false;
+    }
+
+    // Init system filter
+    if (distrodexFilters.initSystem !== 'all') {
+        const initFilter = distrodexFilters.initSystem.toLowerCase();
+        const nodeInit = (node.initSystem || '').toLowerCase();
+        if (!nodeInit.includes(initFilter)) return false;
+    }
+
+    // Desktop environment filter
+    if (distrodexFilters.desktop !== 'all') {
+        const deskFilter = distrodexFilters.desktop.toLowerCase();
+        const nodeDesk = (node.desktopEnvironment || '').toLowerCase();
+        if (!nodeDesk.includes(deskFilter)) return false;
+    }
+
+    // Release type filter
+    if (distrodexFilters.releaseType !== 'all') {
+        const relFilter = distrodexFilters.releaseType.toLowerCase();
+        const nodeRel = (node.releaseType || '').toLowerCase();
+        if (!nodeRel.includes(relFilter)) return false;
+    }
+
+    // Popularity filter
+    if (distrodexFilters.popularity !== 'all') {
+        if ((node.popularity || '').toLowerCase() !== distrodexFilters.popularity.toLowerCase()) {
+            return false;
+        }
+    }
+
+    // Architecture filter
+    if (distrodexFilters.architecture !== 'all') {
+        const archFilter = distrodexFilters.architecture.toLowerCase();
+        const nodeArch = (node.architecture || '').toLowerCase();
+        if (!nodeArch.includes(archFilter)) return false;
+    }
+
+    // Ecosystem filter
+    if (distrodexFilters.ecosystem !== 'all') {
+        if (distrodexFilters.ecosystem === 'linux' && (node.isBsd || node.isUnix)) {
+            return false;
+        }
+        if (distrodexFilters.ecosystem === 'bsd' && !node.isBsd) {
+            return false;
+        }
+        if (distrodexFilters.ecosystem === 'beyond-linux' && !node.isBsd && !node.isUnix) {
+            return false;
+        }
+    }
+
+    // Free text search filter (supports multi-term and field queries like 'pkg:pacman', 'cat:gaming', 'year:2004')
+    if (distrodexFilters.search) {
+        const terms = distrodexFilters.search.split(/\s+/).filter(Boolean);
+        const matchesAllTerms = terms.every(term => {
+            const lowerTerm = term.toLowerCase();
+            if (lowerTerm.includes(':')) {
+                const [key, ...valParts] = lowerTerm.split(':');
+                const val = valParts.join(':').trim();
+                if (!val) return true;
+
+                switch (key) {
+                    case 'name':
+                        return (node.name || '').toLowerCase().includes(val);
+                    case 'cat':
+                    case 'category':
+                        return (node.category || '').toLowerCase().includes(val);
+                    case 'parent':
+                    case 'base':
+                        return (node.parentDistro || '').toLowerCase().includes(val);
+                    case 'pkg':
+                    case 'package':
+                    case 'packagemanager':
+                        return (node.packageManager || '').toLowerCase().includes(val);
+                    case 'init':
+                    case 'initsystem':
+                        return (node.initSystem || '').toLowerCase().includes(val);
+                    case 'desk':
+                    case 'desktop':
+                        return (node.desktopEnvironment || '').toLowerCase().includes(val);
+                    case 'arch':
+                    case 'architecture':
+                        return (node.architecture || '').toLowerCase().includes(val);
+                    case 'year':
+                        return String(node.yearReleased || '').includes(val);
+                    case 'diff':
+                    case 'difficulty':
+                        return (node.difficulty || '').toLowerCase().includes(val);
+                    case 'pop':
+                    case 'popularity':
+                        return (node.popularity || '').toLowerCase().includes(val);
+                    case 'release':
+                    case 'releasetype':
+                        return (node.releaseType || '').toLowerCase().includes(val);
+                    case 'paid':
+                        return val === 'yes' || val === 'true' ? node.paid : !node.paid;
+                    case 'status':
+                        return val === 'active' ? node.discontinued !== 'Yes' : node.discontinued === 'Yes';
+                    default:
+                        break;
+                }
+            }
+
+            const searchable = [
+                node.name,
+                node.parentDistro,
+                node.category,
+                node.packageManager,
+                node.initSystem,
+                node.desktopEnvironment,
+                node.architecture,
+                node.releaseType,
+                node.popularity,
+                node.difficulty,
+                String(node.yearReleased || ''),
+                node.paid ? 'paid commercial' : 'free',
+                node.discontinued === 'Yes' ? 'discontinued' : 'active',
+                node.isBsd ? 'bsd' : '',
+                node.isUnix ? 'unix' : ''
+            ].join(' ').toLowerCase();
+
+            return searchable.includes(lowerTerm);
+        });
+
+        if (!matchesAllTerms) {
+            return false;
+        }
     }
 
     return true;
@@ -1092,12 +1305,187 @@ function distrodexHasMatchingDescendants(node) {
     if (distrodexMatchesFilters(node)) {
         return true;
     }
-
-    return node.children.some(distrodexHasMatchingDescendants);
+    return node.children && node.children.some(distrodexHasMatchingDescendants);
 }
 
-function renderTreeNode(node, level = 0, isLastChild = true, prefix = '') {
-    // Check if this node or any descendants match filters
+function countMatchingDescendants(node) {
+    let count = distrodexMatchesFilters(node) ? 1 : 0;
+    if (node.children) {
+        node.children.forEach(child => {
+            count += countMatchingDescendants(child);
+        });
+    }
+    return count;
+}
+
+function countTotalMatchingDistros() {
+    if (!distrodexDistros) return 0;
+    return distrodexDistros.filter(distrodexMatchesFilters).length;
+}
+
+function isAnyFilterActive() {
+    return (
+        distrodexFilters.search !== '' ||
+        distrodexFilters.category !== 'all' ||
+        distrodexFilters.parent !== 'all' ||
+        distrodexFilters.difficulty !== 'all' ||
+        distrodexFilters.status !== 'active' ||
+        distrodexFilters.paid !== 'all' ||
+        distrodexFilters.packageManager !== 'all' ||
+        distrodexFilters.initSystem !== 'all' ||
+        distrodexFilters.desktop !== 'all' ||
+        distrodexFilters.releaseType !== 'all' ||
+        distrodexFilters.popularity !== 'all' ||
+        distrodexFilters.architecture !== 'all' ||
+        distrodexFilters.ecosystem !== 'all'
+    );
+}
+
+function updateActiveFilterBadges() {
+    let activeCount = 0;
+    const activeTags = [];
+
+    if (distrodexFilters.search) {
+        activeCount++;
+        activeTags.push({ label: `"${distrodexFilters.search}"`, key: 'search' });
+    }
+    if (distrodexFilters.category !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Cat: ${distrodexFilters.category}`, key: 'category' });
+    }
+    if (distrodexFilters.parent !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Base: ${distrodexFilters.parent}`, key: 'parent' });
+    }
+    if (distrodexFilters.difficulty !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Diff: ${distrodexFilters.difficulty}`, key: 'difficulty' });
+    }
+    if (distrodexFilters.status !== 'active') {
+        activeCount++;
+        activeTags.push({ label: `Status: ${distrodexFilters.status}`, key: 'status' });
+    }
+    if (distrodexFilters.paid !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Pricing: ${distrodexFilters.paid}`, key: 'paid' });
+    }
+    if (distrodexFilters.packageManager !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Pkg: ${distrodexFilters.packageManager}`, key: 'packageManager' });
+    }
+    if (distrodexFilters.initSystem !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Init: ${distrodexFilters.initSystem}`, key: 'initSystem' });
+    }
+    if (distrodexFilters.desktop !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Desktop: ${distrodexFilters.desktop}`, key: 'desktop' });
+    }
+    if (distrodexFilters.releaseType !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Release: ${distrodexFilters.releaseType}`, key: 'releaseType' });
+    }
+    if (distrodexFilters.popularity !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Popularity: ${distrodexFilters.popularity}`, key: 'popularity' });
+    }
+    if (distrodexFilters.architecture !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `Arch: ${distrodexFilters.architecture}`, key: 'architecture' });
+    }
+    if (distrodexFilters.ecosystem !== 'all') {
+        activeCount++;
+        activeTags.push({ label: `OS: ${distrodexFilters.ecosystem}`, key: 'ecosystem' });
+    }
+
+    if (distrodexActiveFilterBadge) {
+        if (activeCount > 0) {
+            distrodexActiveFilterBadge.textContent = activeCount;
+            distrodexActiveFilterBadge.classList.remove('hidden');
+        } else {
+            distrodexActiveFilterBadge.classList.add('hidden');
+        }
+    }
+
+    if (distrodexResetFiltersBtn) {
+        if (isAnyFilterActive()) {
+            distrodexResetFiltersBtn.classList.remove('hidden');
+        } else {
+            distrodexResetFiltersBtn.classList.add('hidden');
+        }
+    }
+
+    if (distrodexSearchClearBtn) {
+        if (distrodexFilters.search) {
+            distrodexSearchClearBtn.classList.remove('hidden');
+        } else {
+            distrodexSearchClearBtn.classList.add('hidden');
+        }
+    }
+
+    // Render active tag chips
+    if (distrodexActiveTagsContainer) {
+        if (activeTags.length > 0) {
+            distrodexActiveTagsContainer.innerHTML = activeTags.map(tag => `
+                <span class="active-filter-tag" data-filter-key="${tag.key}">
+                    ${escapeHtml(tag.label)} <button type="button" class="tag-remove-btn" aria-label="Remove filter">×</button>
+                </span>
+            `).join('');
+
+            distrodexActiveTagsContainer.querySelectorAll('.active-filter-tag').forEach(tagEl => {
+                tagEl.addEventListener('click', () => {
+                    const key = tagEl.dataset.filterKey;
+                    resetSingleFilter(key);
+                });
+            });
+        } else {
+            distrodexActiveTagsContainer.innerHTML = '';
+        }
+    }
+}
+
+function resetSingleFilter(key) {
+    if (key === 'search') {
+        distrodexFilters.search = '';
+        if (distrodexSearchInput) distrodexSearchInput.value = '';
+    } else if (key in DEFAULT_DISTRODEX_FILTERS) {
+        distrodexFilters[key] = DEFAULT_DISTRODEX_FILTERS[key];
+        syncFilterControlsFromState();
+    }
+    applyDistrodexFilters();
+}
+
+function syncFilterControlsFromState() {
+    if (distrodexSearchInput) distrodexSearchInput.value = distrodexFilters.search;
+    if (distrodexCategoryFilter) distrodexCategoryFilter.value = distrodexFilters.category;
+    if (distrodexParentFilter) distrodexParentFilter.value = distrodexFilters.parent;
+    if (distrodexDifficultyFilter) distrodexDifficultyFilter.value = distrodexFilters.difficulty;
+    if (distrodexStatusFilter) distrodexStatusFilter.value = distrodexFilters.status;
+    if (distrodexPaidFilter) distrodexPaidFilter.value = distrodexFilters.paid;
+    if (distrodexPkgFilter) distrodexPkgFilter.value = distrodexFilters.packageManager;
+    if (distrodexInitFilter) distrodexInitFilter.value = distrodexFilters.initSystem;
+    if (distrodexDesktopFilter) distrodexDesktopFilter.value = distrodexFilters.desktop;
+    if (distrodexReleaseFilter) distrodexReleaseFilter.value = distrodexFilters.releaseType;
+    if (distrodexPopularityFilter) distrodexPopularityFilter.value = distrodexFilters.popularity;
+    if (distrodexArchFilter) distrodexArchFilter.value = distrodexFilters.architecture;
+    if (distrodexEcosystemFilter) distrodexEcosystemFilter.value = distrodexFilters.ecosystem;
+}
+
+function resetAllDistrodexFilters() {
+    distrodexFilters = { ...DEFAULT_DISTRODEX_FILTERS };
+    syncFilterControlsFromState();
+    applyDistrodexFilters();
+}
+
+function setQuickFilter(key, value) {
+    if (key in distrodexFilters) {
+        distrodexFilters[key] = value;
+        syncFilterControlsFromState();
+        applyDistrodexFilters();
+    }
+}
+
+function renderTreeNode(node, level = 0, isLastChild = true, prefix = '', filterActive = false) {
     if (!distrodexHasMatchingDescendants(node)) {
         return '';
     }
@@ -1106,15 +1494,16 @@ function renderTreeNode(node, level = 0, isLastChild = true, prefix = '') {
     const categoryClass = getCategoryClass(node.category);
     const difficultyClass = getDifficultyClass(node.difficulty);
     const symbols = getNodeSymbols(node);
-    const hasChildren = node.children.length > 0;
-    const expandIcon = hasChildren ? (node.isExpanded ? '▼' : '▶') : '';
+    const hasChildren = node.children && node.children.length > 0;
+    
+    // In search/filter mode with matches, automatically expand branches that lead to matching children
+    const isExpanded = (filterActive && distrodexHasMatchingDescendants(node)) ? true : node.isExpanded;
+    const expandIcon = hasChildren ? (isExpanded ? '▼' : '▶') : '';
     const expandIconClass = hasChildren ? '' : 'no-children';
 
-    // Build tree line prefix
     const lineChar = isLastChild ? '└─' : '├─';
     const fullPrefix = level > 0 ? prefix + lineChar + ' ' : '';
 
-    // Store distro data for tooltip
     const distroData = JSON.stringify({
         name: node.name,
         yearReleased: node.yearReleased,
@@ -1131,58 +1520,63 @@ function renderTreeNode(node, level = 0, isLastChild = true, prefix = '') {
         releaseType: node.releaseType
     }).replace(/"/g, '&quot;');
 
-    let html = '';
+    const displayName = highlightSearchTerm(node.name, distrodexFilters.search);
+    const nodeStateClass = nodeMatches ? 'node-matched' : 'node-ancestor';
 
-    if (nodeMatches) {
-        html += `<div class="tree-node ${categoryClass} ${difficultyClass}" data-node-id="${node.id}">`;
-        html += `  <div class="tree-node-content">`;
-        html += `    <span class="tree-line-prefix">${fullPrefix}</span>`;
-        html += `    <span class="tree-expand-icon ${expandIconClass}">${expandIcon}</span>`;
-        html += `    <span class="tree-node-name" data-distro='${distroData}'>${node.name}</span>`;
-        if (symbols) {
-            html += `    <span class="tree-node-symbols">${symbols}</span>`;
-        }
-        html += `  </div>`;
+    let html = `<div class="tree-node ${categoryClass} ${difficultyClass} ${nodeStateClass}" data-node-id="${node.id}">`;
+    html += `  <div class="tree-node-content">`;
+    html += `    <span class="tree-line-prefix">${fullPrefix}</span>`;
+    html += `    <span class="tree-expand-icon ${expandIconClass}">${expandIcon}</span>`;
+    html += `    <span class="tree-node-name" data-distro='${distroData}'>${displayName}</span>`;
+    if (node.yearReleased) {
+        html += `    <span class="tree-node-year">(${node.yearReleased})</span>`;
+    }
+    if (symbols) {
+        html += `    <span class="tree-node-symbols">${symbols}</span>`;
+    }
+    if (!nodeMatches) {
+        const matchCount = countMatchingDescendants(node);
+        html += `    <span class="tree-node-descendant-count">${matchCount} match${matchCount === 1 ? '' : 'es'}</span>`;
+    }
+    html += `  </div>`;
 
-        if (hasChildren) {
-            const childPrefix = level > 0 ? prefix + (isLastChild ? '  ' : '│ ') : '';
-            const childrenClass = node.isExpanded ? '' : 'collapsed';
-            html += `  <div class="tree-children ${childrenClass}">`;
-            node.children.forEach((child, index) => {
-                const isLast = index === node.children.length - 1;
-                html += renderTreeNode(child, level + 1, isLast, childPrefix);
-            });
-            html += `  </div>`;
-        }
-
-        html += `</div>`;
-    } else if (hasChildren) {
-        // Node doesn't match but has children that might match
+    if (hasChildren) {
         const childPrefix = level > 0 ? prefix + (isLastChild ? '  ' : '│ ') : '';
+        const childrenClass = isExpanded ? '' : 'collapsed';
+        html += `  <div class="tree-children ${childrenClass}">`;
         node.children.forEach((child, index) => {
             const isLast = index === node.children.length - 1;
-            html += renderTreeNode(child, level, isLast, prefix);
+            html += renderTreeNode(child, level + 1, isLast, childPrefix, filterActive);
         });
+        html += `  </div>`;
     }
 
+    html += `</div>`;
     return html;
 }
 
 function renderDistrodexTree() {
     if (!distrodexTree || !distrodexTreeContainer) return;
 
+    const filterActive = isAnyFilterActive();
     let html = '';
+
     distrodexTree.forEach(root => {
-        html += renderTreeNode(root, 0, true, '');
+        html += renderTreeNode(root, 0, true, '', filterActive);
     });
 
     if (html === '') {
-        html = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">No distros match the current filters.</div>';
+        html = `
+            <div class="distrodex-empty-state">
+                <div class="empty-prompt">$ distrodex --find: No distributions match the selected filters.</div>
+                <button type="button" class="btn btn-small" id="distrodex-empty-reset-btn">Reset All Filters</button>
+            </div>
+        `;
     }
 
     distrodexTreeContainer.innerHTML = html;
 
-    // Add click handlers for expand/collapse
+    // Attach click handlers
     distrodexTreeContainer.querySelectorAll('.tree-node').forEach(nodeEl => {
         const nodeId = nodeEl.dataset.nodeId;
         const expandIcon = nodeEl.querySelector('.tree-expand-icon');
@@ -1195,15 +1589,137 @@ function renderDistrodexTree() {
         }
     });
 
-    // Add tooltip handlers for distro names
+    const emptyResetBtn = document.getElementById('distrodex-empty-reset-btn');
+    if (emptyResetBtn) {
+        emptyResetBtn.addEventListener('click', resetAllDistrodexFilters);
+    }
+
     setupDistrodexTooltips();
+}
+
+function sortDistroList(list, sortBy) {
+    const sorted = [...list];
+    const popRank = { 'Very High': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Very Low': 0 };
+    const diffRank = { 'Beginner': 0, 'Intermediate': 1, 'Advanced': 2, 'Expert': 3 };
+
+    switch (sortBy) {
+        case 'name-asc':
+            return sorted.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc':
+            return sorted.sort((a, b) => b.name.localeCompare(a.name));
+        case 'year-desc':
+            return sorted.sort((a, b) => (b.yearReleased || 0) - (a.yearReleased || 0));
+        case 'year-asc':
+            return sorted.sort((a, b) => (a.yearReleased || 0) - (b.yearReleased || 0));
+        case 'popularity-desc':
+            return sorted.sort((a, b) => (popRank[b.popularity] ?? 0) - (popRank[a.popularity] ?? 0));
+        case 'difficulty-asc':
+            return sorted.sort((a, b) => (diffRank[a.difficulty] ?? 0) - (diffRank[b.difficulty] ?? 0));
+        default:
+            return sorted;
+    }
+}
+
+function renderDistrodexList() {
+    if (!distrodexDistros || !distrodexListContainer) return;
+
+    const matchedDistros = distrodexDistros.filter(distrodexMatchesFilters);
+    const sortedDistros = sortDistroList(matchedDistros, distrodexSortBy);
+
+    if (sortedDistros.length === 0) {
+        distrodexListContainer.innerHTML = `
+            <div class="distrodex-empty-state">
+                <div class="empty-prompt">$ distrodex --find: No distributions match the selected filters.</div>
+                <button type="button" class="btn btn-small" id="distrodex-empty-reset-list-btn">Reset All Filters</button>
+            </div>
+        `;
+        const emptyBtn = document.getElementById('distrodex-empty-reset-list-btn');
+        if (emptyBtn) {
+            emptyBtn.addEventListener('click', resetAllDistrodexFilters);
+        }
+        return;
+    }
+
+    let html = '<div class="distrodex-card-grid">';
+
+    sortedDistros.forEach(distro => {
+        const catClass = getCategoryClass(distro.category);
+        const diffClass = getDifficultyClass(distro.difficulty);
+        const symbols = getNodeSymbols(distro);
+        const displayName = highlightSearchTerm(distro.name, distrodexFilters.search);
+        const paidStatus = distro.paid ? 'Paid' : 'Free';
+        const statusBadge = distro.discontinued === 'Yes' ? '<span class="status-pill discontinued">Discontinued</span>' : '<span class="status-pill active">Active</span>';
+
+        html += `
+            <div class="distro-card ${catClass} ${diffClass}" data-distro-id="${distro.id}">
+                <div class="distro-card-header">
+                    <div class="distro-card-title-row">
+                        <span class="distro-card-name">${displayName}</span>
+                        <span class="distro-card-year">${distro.yearReleased || 'N/A'}</span>
+                    </div>
+                    <div class="distro-card-pills">
+                        ${statusBadge}
+                        <span class="pricing-pill ${distro.paid ? 'paid' : 'free'}">${paidStatus}</span>
+                        ${symbols ? `<span class="card-symbols">${symbols}</span>` : ''}
+                    </div>
+                </div>
+
+                <div class="distro-card-body">
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Base:</span>
+                        <button type="button" class="tag-link" data-filter="parent" data-val="${distro.parentDistro}">${escapeHtml(distro.parentDistro)}</button>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Category:</span>
+                        <button type="button" class="tag-link" data-filter="category" data-val="${distro.category.split(',')[0].trim()}">${escapeHtml(distro.category)}</button>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Difficulty:</span>
+                        <button type="button" class="tag-link" data-filter="difficulty" data-val="${distro.difficulty}">${escapeHtml(distro.difficulty)}</button>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Package:</span>
+                        <span class="prop-val">${escapeHtml(distro.packageManager)}</span>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Init:</span>
+                        <span class="prop-val">${escapeHtml(distro.initSystem)}</span>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Desktop:</span>
+                        <span class="prop-val">${escapeHtml(distro.desktopEnvironment)}</span>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Release:</span>
+                        <span class="prop-val">${escapeHtml(distro.releaseType)}</span>
+                    </div>
+                    <div class="distro-card-prop">
+                        <span class="prop-label">Popularity:</span>
+                        <span class="prop-val">${escapeHtml(distro.popularity)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    distrodexListContainer.innerHTML = html;
+
+    // Attach quick-filter link click handlers
+    distrodexListContainer.querySelectorAll('.tag-link').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const filterKey = btn.dataset.filter;
+            const filterVal = btn.dataset.val;
+            setQuickFilter(filterKey, filterVal);
+        });
+    });
 }
 
 let distrodexTooltipElement = null;
 
 function setupDistrodexTooltips() {
     const distroNames = distrodexTreeContainer.querySelectorAll('.tree-node-name');
-
     distroNames.forEach(nameEl => {
         nameEl.addEventListener('mouseenter', showDistrodexTooltip);
         nameEl.addEventListener('mousemove', moveDistrodexTooltip);
@@ -1212,63 +1728,64 @@ function setupDistrodexTooltips() {
 }
 
 function showDistrodexTooltip(e) {
+    if (!e.target.dataset.distro) return;
     const distroData = JSON.parse(e.target.dataset.distro);
 
     distrodexTooltipElement = document.createElement('div');
     distrodexTooltipElement.className = 'distro-tooltip';
 
-    const paidStatus = distroData.paid ? 'Yes' : 'No';
-    const discontinuedStatus = distroData.discontinued;
+    const paidStatus = distroData.paid ? 'Commercial / Paid' : 'Free';
+    const discontinuedStatus = distroData.discontinued === 'Yes' ? 'Discontinued' : 'Active';
 
     distrodexTooltipElement.innerHTML = `
-        <div class="distro-tooltip-header">${distroData.name}</div>
+        <div class="distro-tooltip-header">${escapeHtml(distroData.name)}</div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Year Released:</span>
-            <span class="distro-tooltip-value">${distroData.yearReleased}</span>
+            <span class="distro-tooltip-value">${distroData.yearReleased || 'N/A'}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Parent:</span>
-            <span class="distro-tooltip-value">${distroData.parentDistro}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.parentDistro)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Category:</span>
-            <span class="distro-tooltip-value">${distroData.category}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.category)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Difficulty:</span>
-            <span class="distro-tooltip-value">${distroData.difficulty}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.difficulty)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Package Manager:</span>
-            <span class="distro-tooltip-value">${distroData.packageManager}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.packageManager)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Init System:</span>
-            <span class="distro-tooltip-value">${distroData.initSystem}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.initSystem)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Desktop:</span>
-            <span class="distro-tooltip-value">${distroData.desktopEnvironment}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.desktopEnvironment)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Release Type:</span>
-            <span class="distro-tooltip-value">${distroData.releaseType}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.releaseType)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Architecture:</span>
-            <span class="distro-tooltip-value">${distroData.architecture}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.architecture)}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Popularity:</span>
-            <span class="distro-tooltip-value">${distroData.popularity}</span>
+            <span class="distro-tooltip-value">${escapeHtml(distroData.popularity)}</span>
         </div>
         <div class="distro-tooltip-row">
-            <span class="distro-tooltip-label">Paid:</span>
+            <span class="distro-tooltip-label">Pricing:</span>
             <span class="distro-tooltip-value">${paidStatus}</span>
         </div>
         <div class="distro-tooltip-row">
             <span class="distro-tooltip-label">Status:</span>
-            <span class="distro-tooltip-value">${discontinuedStatus === 'Yes' ? 'Discontinued' : 'Active'}</span>
+            <span class="distro-tooltip-value">${discontinuedStatus}</span>
         </div>
     `;
 
@@ -1289,7 +1806,6 @@ function moveDistrodexTooltip(e) {
     if (left + tooltipWidth > window.innerWidth) {
         left = e.clientX - tooltipWidth - padding;
     }
-
     if (top + tooltipHeight > window.innerHeight) {
         top = e.clientY - tooltipHeight - padding;
     }
@@ -1312,7 +1828,7 @@ function toggleDistrodexNode(nodeId) {
                 node.isExpanded = !node.isExpanded;
                 return true;
             }
-            if (node.children.length > 0 && toggleInTree(node.children)) {
+            if (node.children && node.children.length > 0 && toggleInTree(node.children)) {
                 return true;
             }
         }
@@ -1326,7 +1842,7 @@ function toggleDistrodexNode(nodeId) {
 function expandAllDistrodexNodes(nodes) {
     nodes.forEach(node => {
         node.isExpanded = true;
-        if (node.children.length > 0) {
+        if (node.children && node.children.length > 0) {
             expandAllDistrodexNodes(node.children);
         }
     });
@@ -1335,16 +1851,61 @@ function expandAllDistrodexNodes(nodes) {
 function collapseAllDistrodexNodes(nodes) {
     nodes.forEach(node => {
         node.isExpanded = false;
-        if (node.children.length > 0) {
+        if (node.children && node.children.length > 0) {
             collapseAllDistrodexNodes(node.children);
         }
     });
 }
 
+function updateResultsCount() {
+    if (!distrodexResultsCount || !distrodexDistros) return;
+    const matchedCount = countTotalMatchingDistros();
+    const totalCount = distrodexDistros.length;
+
+    if (isAnyFilterActive()) {
+        distrodexResultsCount.textContent = `Showing ${matchedCount} of ${totalCount} distros`;
+        distrodexResultsCount.classList.add('highlight');
+    } else {
+        distrodexResultsCount.textContent = `${totalCount} distros`;
+        distrodexResultsCount.classList.remove('highlight');
+    }
+}
+
+function applyDistrodexFilters() {
+    updateActiveFilterBadges();
+    updateResultsCount();
+
+    if (distrodexViewMode === 'tree') {
+        renderDistrodexTree();
+    } else {
+        renderDistrodexList();
+    }
+}
+
+function switchDistrodexView(view) {
+    distrodexViewMode = view;
+    if (view === 'tree') {
+        if (distrodexViewTreeBtn) distrodexViewTreeBtn.classList.add('active');
+        if (distrodexViewListBtn) distrodexViewListBtn.classList.remove('active');
+        if (distrodexTreeContainer) distrodexTreeContainer.classList.remove('hidden');
+        if (distrodexListContainer) distrodexListContainer.classList.add('hidden');
+        if (distrodexTreeControls) distrodexTreeControls.classList.remove('hidden');
+        if (distrodexListControls) distrodexListControls.classList.add('hidden');
+        renderDistrodexTree();
+    } else {
+        if (distrodexViewTreeBtn) distrodexViewTreeBtn.classList.remove('active');
+        if (distrodexViewListBtn) distrodexViewListBtn.classList.add('active');
+        if (distrodexTreeContainer) distrodexTreeContainer.classList.add('hidden');
+        if (distrodexListContainer) distrodexListContainer.classList.remove('hidden');
+        if (distrodexTreeControls) distrodexTreeControls.classList.add('hidden');
+        if (distrodexListControls) distrodexListControls.classList.remove('hidden');
+        renderDistrodexList();
+    }
+}
+
 async function openDistrodex() {
     if (!distrodexModal) return;
 
-    // Fetch distros if not already loaded
     if (!distrodexDistros) {
         try {
             const response = await fetch('/api/distros/full');
@@ -1360,13 +1921,17 @@ async function openDistrodex() {
         }
     }
 
-    // Build tree if not already built
     if (!distrodexTree) {
         distrodexTree = buildDistroTree(distrodexDistros);
     }
 
-    renderDistrodexTree();
+    syncFilterControlsFromState();
+    applyDistrodexFilters();
     distrodexModal.classList.remove('hidden');
+
+    if (distrodexSearchInput) {
+        distrodexSearchInput.focus();
+    }
 }
 
 function closeDistrodex() {
@@ -1375,11 +1940,7 @@ function closeDistrodex() {
     hideDistrodexTooltip();
 }
 
-function applyDistrodexFilters() {
-    renderDistrodexTree();
-}
-
-// Event listeners for the Distrodex
+// Event Listeners
 if (distrodexBtn) {
     distrodexBtn.addEventListener('click', openDistrodex);
 }
@@ -1396,16 +1957,47 @@ if (distrodexModal) {
     });
 }
 
+if (distrodexViewTreeBtn) {
+    distrodexViewTreeBtn.addEventListener('click', () => switchDistrodexView('tree'));
+}
+
+if (distrodexViewListBtn) {
+    distrodexViewListBtn.addEventListener('click', () => switchDistrodexView('list'));
+}
+
+if (distrodexAdvToggleBtn && distrodexAdvFiltersPanel) {
+    distrodexAdvToggleBtn.addEventListener('click', () => {
+        distrodexAdvFiltersPanel.classList.toggle('hidden');
+        distrodexAdvToggleBtn.classList.toggle('active');
+    });
+}
+
+if (distrodexResetFiltersBtn) {
+    distrodexResetFiltersBtn.addEventListener('click', resetAllDistrodexFilters);
+}
+
 if (distrodexSearchInput) {
     distrodexSearchInput.addEventListener('input', (e) => {
         clearTimeout(distrodexSearchDebounceTimer);
         distrodexSearchDebounceTimer = setTimeout(() => {
             distrodexFilters.search = e.target.value.trim();
             applyDistrodexFilters();
-        }, 300);
+        }, 200);
     });
 }
 
+if (distrodexSearchClearBtn) {
+    distrodexSearchClearBtn.addEventListener('click', () => {
+        distrodexFilters.search = '';
+        if (distrodexSearchInput) {
+            distrodexSearchInput.value = '';
+            distrodexSearchInput.focus();
+        }
+        applyDistrodexFilters();
+    });
+}
+
+// Filter change listeners
 if (distrodexCategoryFilter) {
     distrodexCategoryFilter.addEventListener('change', (e) => {
         distrodexFilters.category = e.target.value;
@@ -1413,33 +2005,121 @@ if (distrodexCategoryFilter) {
     });
 }
 
-if (distrodexPaidOnlyCheckbox) {
-    distrodexPaidOnlyCheckbox.addEventListener('change', (e) => {
-        distrodexFilters.paidOnly = e.target.checked;
+if (distrodexParentFilter) {
+    distrodexParentFilter.addEventListener('change', (e) => {
+        distrodexFilters.parent = e.target.value;
         applyDistrodexFilters();
     });
 }
 
-if (distrodexActiveOnlyCheckbox) {
-    distrodexActiveOnlyCheckbox.addEventListener('change', (e) => {
-        distrodexFilters.activeOnly = e.target.checked;
+if (distrodexDifficultyFilter) {
+    distrodexDifficultyFilter.addEventListener('change', (e) => {
+        distrodexFilters.difficulty = e.target.value;
         applyDistrodexFilters();
+    });
+}
+
+if (distrodexStatusFilter) {
+    distrodexStatusFilter.addEventListener('change', (e) => {
+        distrodexFilters.status = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexPaidFilter) {
+    distrodexPaidFilter.addEventListener('change', (e) => {
+        distrodexFilters.paid = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexPkgFilter) {
+    distrodexPkgFilter.addEventListener('change', (e) => {
+        distrodexFilters.packageManager = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexInitFilter) {
+    distrodexInitFilter.addEventListener('change', (e) => {
+        distrodexFilters.initSystem = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexDesktopFilter) {
+    distrodexDesktopFilter.addEventListener('change', (e) => {
+        distrodexFilters.desktop = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexReleaseFilter) {
+    distrodexReleaseFilter.addEventListener('change', (e) => {
+        distrodexFilters.releaseType = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexPopularityFilter) {
+    distrodexPopularityFilter.addEventListener('change', (e) => {
+        distrodexFilters.popularity = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexArchFilter) {
+    distrodexArchFilter.addEventListener('change', (e) => {
+        distrodexFilters.architecture = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexEcosystemFilter) {
+    distrodexEcosystemFilter.addEventListener('change', (e) => {
+        distrodexFilters.ecosystem = e.target.value;
+        applyDistrodexFilters();
+    });
+}
+
+if (distrodexSortSelect) {
+    distrodexSortSelect.addEventListener('change', (e) => {
+        distrodexSortBy = e.target.value;
+        if (distrodexViewMode === 'list') {
+            renderDistrodexList();
+        }
     });
 }
 
 if (distrodexExpandAllBtn) {
     distrodexExpandAllBtn.addEventListener('click', () => {
-        expandAllDistrodexNodes(distrodexTree);
-        renderDistrodexTree();
+        if (distrodexTree) {
+            expandAllDistrodexNodes(distrodexTree);
+            renderDistrodexTree();
+        }
     });
 }
 
 if (distrodexCollapseAllBtn) {
     distrodexCollapseAllBtn.addEventListener('click', () => {
-        collapseAllDistrodexNodes(distrodexTree);
-        renderDistrodexTree();
+        if (distrodexTree) {
+            collapseAllDistrodexNodes(distrodexTree);
+            renderDistrodexTree();
+        }
     });
 }
+
+// Global key handlers for Distrodex modal
+document.addEventListener('keydown', (e) => {
+    if (distrodexModal && !distrodexModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') {
+            closeDistrodex();
+        } else if (e.key === '/' && document.activeElement !== distrodexSearchInput) {
+            e.preventDefault();
+            if (distrodexSearchInput) distrodexSearchInput.focus();
+        }
+    }
+});
 
 // Confetti effect
 function createConfetti() {
