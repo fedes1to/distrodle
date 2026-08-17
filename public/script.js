@@ -847,9 +847,23 @@ function generateShareText() {
         .map(row => row.map(status => statusEmojiMap[status] || '🟥').join(''))
         .join('\n');
 
-    const url = window.location.origin && window.location.origin.startsWith('http')
-        ? window.location.origin
-        : 'https://distro.fedesito.me';
+    let url = '';
+    try {
+        if (typeof window !== 'undefined' && window.location && window.location.href) {
+            url = window.location.href
+                .split('?')[0]
+                .split('#')[0]
+                .replace(/\/index\.html$/i, '')
+                .replace(/\/+$/, '');
+        }
+    } catch (e) {
+        // Fallback
+    }
+    if (!url) {
+        url = typeof window !== 'undefined' && window.location?.origin
+            ? window.location.origin
+            : 'https://distro.fedesito.me';
+    }
 
     return `Distrodle 🐧 ${optionsText} — ${triesLabel}\n\n${grid}\n\n${url}`;
 }
