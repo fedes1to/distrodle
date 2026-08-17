@@ -661,12 +661,18 @@ header p {
     margin-top: 0.2rem;
 }
 
+.guess-count-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
 #guess-count {
     font-weight: bold;
     color: var(--accent);
     font-size: 3rem;
-    display: block;
-    margin: 1rem 0;
 }
 
 .tries-label {
