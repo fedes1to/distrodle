@@ -690,6 +690,8 @@ header p {
     letter-spacing: 2px;
     display: inline-block;
     max-width: 100%;
+    white-space: nowrap;
+    overflow-x: auto;
     user-select: text;
     max-height: 140px;
     overflow-y: auto;
