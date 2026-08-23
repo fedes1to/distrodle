@@ -1036,9 +1036,13 @@ function buildDistroTree(distros) {
         }
     });
 
-    // Root nodes (independent distros) sorted by year
+    // Root nodes (independent distros or distros with missing parents) sorted by year
     const roots = Array.from(distroMap.values())
-        .filter(d => d.parentDistro === 'Independent')
+        .filter(d => {
+            let p = d.parentDistro;
+            if (p === 'Mandriva' && !distroMap.has('Mandriva')) p = 'Mandriva Linux';
+            return p === 'Independent' || !distroMap.has(p);
+        })
         .sort((a, b) => (a.yearReleased || 0) - (b.yearReleased || 0));
 
     function sortChildren(node) {
